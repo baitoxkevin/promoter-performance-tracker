@@ -1,8 +1,10 @@
 /**
  * Navbar — Fixed top navigation bar.
  *
- * Shows the app brand and navigation links.
- * Highlights the active route.
+ * Designed to match BaitoTrack friendly brand:
+ *  - Left side: ⭐ BaitoTrack branding
+ *  - Middle: Navigation links (Home, Upload)
+ *  - Right side: Admin Login button
  */
 
 import { NavLink } from "react-router-dom";
@@ -11,10 +13,10 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-content">
-        {/* Brand */}
+        {/* Brand Logo */}
         <NavLink to="/" className="navbar-brand" style={{ textDecoration: "none" }}>
-          <span className="navbar-brand-icon">🏆</span>
-          <span className="navbar-brand-text">PromoTracker</span>
+          <span className="navbar-brand-icon">⭐</span>
+          <span className="navbar-brand-text">BaitoTrack</span>
         </NavLink>
 
         {/* Navigation Links */}
@@ -26,8 +28,7 @@ export default function Navbar() {
               `navbar-link ${isActive ? "active" : ""}`
             }
           >
-            <span className="navbar-link-icon">📊</span>
-            <span>Leaderboard</span>
+            <span>Home</span>
           </NavLink>
 
           <NavLink
@@ -36,18 +37,16 @@ export default function Navbar() {
               `navbar-link ${isActive ? "active" : ""}`
             }
           >
-            <span className="navbar-link-icon">📸</span>
             <span>Upload</span>
           </NavLink>
 
+          {/* Admin Login button on the far right */}
           <NavLink
             to="/admin"
-            className={({ isActive }) =>
-              `navbar-link ${isActive ? "active" : ""}`
-            }
+            className="navbar-admin-btn"
+            style={{ marginLeft: 16 }}
           >
-            <span className="navbar-link-icon">⚙️</span>
-            <span>Admin</span>
+            🔒 <span>Admin Login</span>
           </NavLink>
         </div>
       </div>
