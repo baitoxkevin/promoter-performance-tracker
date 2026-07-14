@@ -336,6 +336,12 @@ h1, h2, h3, h4 {
   color: var(--warning);
 }
 
+.top-promoter-trophy {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
 .stat-info {
   display: flex;
   flex-direction: column;

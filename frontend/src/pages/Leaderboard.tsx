@@ -204,7 +204,9 @@ export default function Leaderboard() {
 
             {/* Top Promoter */}
             <div className="stat-card">
-              <div className="stat-icon-wrapper top">🏆</div>
+              <div className="stat-icon-wrapper top">
+                <img src="/trophy.png" alt="Top Promoter Trophy" className="top-promoter-trophy" />
+              </div>
               <div className="stat-info">
                 <span className="stat-label">Top Promoter</span>
                 <span className="stat-value" style={{ fontSize: "1.3rem", fontWeight: 700, paddingTop: 4 }}>
