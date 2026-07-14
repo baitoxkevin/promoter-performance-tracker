@@ -1274,13 +1274,13 @@ h1, h2, h3, h4 {
 }
 
 .leaderboard-title {
-  font-family: var(--font-heading); /* Matching 'Poppins', sans-serif from hero title */
+  font-family: var(--font-main); /* 'Outfit', sans-serif which is very clean and slim */
   font-size: 3.8cqw;
-  font-weight: 700;
-  color: var(--text-main); /* Matching #2d3748 from hero title */
+  font-weight: 300; /* Slim/thin font weight */
+  color: var(--text-main);
   margin: 0;
   line-height: 1.1;
-  letter-spacing: -0.015em;
+  letter-spacing: 0.02em; /* Spaced out slightly to look elegant and tall */
 }
 
 .leaderboard-subtext {
