@@ -1241,8 +1241,8 @@ h1, h2, h3, h4 {
   left: 4.8%;
   top: 7.2%;
   display: flex;
-  align-items: flex-start;
-  gap: 1.6cqw;
+  align-items: center; /* Centered alignment matches screenshot perfectly */
+  gap: 1.4cqw;
   z-index: 10;
   pointer-events: none;
 }
@@ -1251,11 +1251,14 @@ h1, h2, h3, h4 {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 5.0cqw;
+  height: 5.0cqw;
 }
 
-.trophy-emoji {
-  font-size: 5.6cqw; /* Slightly larger, aligning with the 3D screenshot size */
-  line-height: 1;
+.trophy-image-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .title-text-group {
@@ -1265,21 +1268,21 @@ h1, h2, h3, h4 {
 }
 
 .leaderboard-title {
-  font-family: var(--font-heading);
-  font-size: 4.8cqw; /* Replicated large bold rounded geometric style */
-  font-weight: 800;
+  font-family: 'Outfit', 'Nunito', 'Quicksand', 'Segoe UI', system-ui, sans-serif; /* Highly rounded, smooth geometric fonts */
+  font-size: 3.8cqw; /* Tuned smaller as requested */
+  font-weight: 850; /* Slightly bolder for a softer, bubble-like appearance */
   color: #2e2a2b; /* Warm dark charcoal black from the screenshot */
   margin: 0;
   line-height: 1.1;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
 }
 
 .leaderboard-subtext {
-  font-family: var(--font-main);
-  font-size: 1.8cqw; /* Subtext size relative to the container query */
+  font-family: 'Nunito', 'Quicksand', system-ui, sans-serif;
+  font-size: 1.5cqw; /* Tuned smaller as requested */
   color: #707a8a; /* Soft blue-grey color from the screenshot */
-  font-weight: 600;
-  margin: 0.4cqw 0 0 0;
+  font-weight: 700;
+  margin: 0.2cqw 0 0 0;
   line-height: 1.2;
 }
 
@@ -1287,6 +1290,6 @@ h1, h2, h3, h4 {
   .leaderboard-header-row {
     left: 6%;
     top: 8%;
-    gap: 2.2cqw;
+    gap: 2.0cqw;
   }
 }

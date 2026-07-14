@@ -222,7 +222,7 @@ export default function Leaderboard() {
             {/* Header Overlay (Dynamic text on top-left replicated from user screenshot) */}
             <div className="leaderboard-header-row">
               <div className="trophy-wrapper">
-                <span className="trophy-emoji">🏆</span>
+                <img src="/trophy.png" alt="Trophy Icon" className="trophy-image-icon" />
               </div>
               <div className="title-text-group">
                 <h2 className="leaderboard-title">Leaderboard</h2>
