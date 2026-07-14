@@ -15,7 +15,7 @@ export default function Navbar() {
       <div className="navbar-content">
         {/* Brand Logo */}
         <NavLink to="/" className="navbar-brand" style={{ textDecoration: "none" }}>
-          <span className="navbar-brand-icon">⭐</span>
+          <img src="/baito.jpg" alt="BaitoTrack Logo" className="navbar-brand-logo" />
           <span className="navbar-brand-text">BaitoTrack</span>
         </NavLink>
 

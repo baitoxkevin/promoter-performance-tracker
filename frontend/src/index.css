@@ -137,11 +137,11 @@ h1, h2, h3, h4 {
   color: var(--text-main);
 }
 
-.navbar-brand-icon {
-  font-size: 1.7rem;
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
+.navbar-brand-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
   animation: bounce 2s infinite alternate;
 }
 
