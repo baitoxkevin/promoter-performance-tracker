@@ -224,16 +224,15 @@ h1, h2, h3, h4 {
 .hero-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background-color: var(--primary-light);
   color: var(--primary);
   border: 1px solid var(--primary-border);
-  padding: 6px 18px;
+  padding: 8px 24px;
   border-radius: 24px;
   font-weight: 600;
   font-size: 0.8rem;
   margin-bottom: 20px;
-  text-transform: uppercase;
 }
 
 .hero-title {

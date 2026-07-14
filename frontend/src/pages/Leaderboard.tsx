@@ -34,7 +34,8 @@ export default function Leaderboard() {
       <header className="hero-banner">
         <div className="hero-content">
           <div className="hero-tag">
-            <span>💖 &nbsp;Track. Verify. Reward.</span>
+            <span>💖</span>
+            <span>Track. Verify. Reward.</span>
           </div>
           <h1 className="hero-title">Smart Promoter Performance Tracker</h1>
           <div className="hero-subtitle">
