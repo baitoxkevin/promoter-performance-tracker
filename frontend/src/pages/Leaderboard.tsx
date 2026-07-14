@@ -40,9 +40,6 @@ export default function Leaderboard() {
           <div className="hero-subtitle">
             <p className="hero-subtitle-primary">Upload proofs, avoid duplicates, and climb the leaderboard!</p>
             <p className="hero-subtitle-primary">Let's make every new user count.</p>
-            <p className="hero-subtitle-secondary">
-              功能解释：上传推广凭证、防重复刷单、冲排行榜榜单；强调每一条新增注册数据都有效可统计。
-            </p>
           </div>
           <div className="hero-buttons">
             <Link to="/upload" className="btn btn-primary">
