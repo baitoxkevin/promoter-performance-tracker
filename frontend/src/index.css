@@ -1222,11 +1222,11 @@ h1, h2, h3, h4 {
 
 .baitotrack-leaderboard-root {
   margin-top: 50px;
-  padding: 130px 40px 80px 40px; /* Top padding clears the printed leaderboard header */
   background: url('/leaderboard_bg.png') no-repeat center center;
   background-size: cover;
   border-radius: 32px;
   width: 100%;
+  aspect-ratio: 1440/680;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
