@@ -132,20 +132,23 @@ h1, h2, h3, h4 {
   align-items: center;
   gap: 8px;
   font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.35rem;
+  font-weight: 800;
+  font-size: 1.5rem;
   color: var(--text-main);
 }
 
 .navbar-brand-icon {
-  font-size: 1.6rem;
+  font-size: 1.7rem;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
   animation: bounce 2s infinite alternate;
 }
 
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .navbar-link {
@@ -156,8 +159,8 @@ h1, h2, h3, h4 {
   color: var(--text-muted);
   font-weight: 500;
   font-size: 0.95rem;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 8px 18px;
+  border-radius: 24px;
   transition: var(--transition);
 }
 
@@ -179,18 +182,18 @@ h1, h2, h3, h4 {
   text-decoration: none;
   font-weight: 500;
   font-size: 0.9rem;
-  padding: 8px 18px;
-  border-radius: 20px;
+  padding: 8px 20px;
+  border-radius: 24px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   transition: var(--transition);
 }
 
 .navbar-admin-btn:hover {
-  background-color: var(--primary);
-  color: #ffffff;
-  border-color: var(--primary);
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary-border);
 }
 
 /* ──────────────────────────────────────────────
@@ -225,8 +228,8 @@ h1, h2, h3, h4 {
   background-color: var(--primary-light);
   color: var(--primary);
   border: 1px solid var(--primary-border);
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 6px 18px;
+  border-radius: 24px;
   font-weight: 600;
   font-size: 0.8rem;
   margin-bottom: 20px;
@@ -249,16 +252,8 @@ h1, h2, h3, h4 {
 
 .hero-subtitle-primary {
   font-size: 1.05rem;
-  color: var(--text-main);
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.hero-subtitle-secondary {
-  font-size: 0.82rem;
   color: var(--text-muted);
   font-weight: 400;
-  margin-top: 4px;
   line-height: 1.4;
 }
 
@@ -351,13 +346,12 @@ h1, h2, h3, h4 {
   font-size: 0.82rem;
   color: var(--text-muted);
   font-weight: 500;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .stat-value {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.2;
@@ -379,6 +373,10 @@ h1, h2, h3, h4 {
   grid-template-columns: 1fr 320px;
   gap: 30px;
   align-items: start;
+}
+
+.leaderboard-container.full-width {
+  grid-template-columns: 1fr;
 }
 
 .card-title-wrapper {
@@ -405,6 +403,28 @@ h1, h2, h3, h4 {
   padding: 30px;
   border: 1px solid rgba(255, 90, 128, 0.05);
   box-shadow: var(--shadow-sm);
+}
+
+.table-card.relative-card {
+  position: relative;
+  padding-bottom: 40px;
+}
+
+.leaderboard-bunny-decor {
+  position: absolute;
+  bottom: 0px;
+  right: 20px;
+  width: 140px;
+  height: auto;
+  pointer-events: none;
+  z-index: 5;
+  animation: dance 3s ease-in-out infinite alternate;
+}
+
+@media (max-width: 768px) {
+  .leaderboard-bunny-decor {
+    display: none;
+  }
 }
 
 .leaderboard-bunny-card {
@@ -455,7 +475,6 @@ h1, h2, h3, h4 {
   font-size: 0.85rem;
   color: var(--text-muted);
   font-weight: 600;
-  text-transform: uppercase;
   border-bottom: 2px solid #edf2f7;
 }
 
@@ -544,12 +563,13 @@ h1, h2, h3, h4 {
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 0.95rem;
-  padding: 12px 24px;
-  border-radius: var(--radius-md);
+  padding: 12px 28px;
+  border-radius: 24px;
   border: none;
   cursor: pointer;
   transition: var(--transition);
   text-decoration: none;
+  min-width: 180px;
 }
 
 .btn-primary {
@@ -925,7 +945,6 @@ h1, h2, h3, h4 {
   font-size: 0.82rem;
   color: var(--text-muted);
   font-weight: 600;
-  text-transform: uppercase;
   background-color: #fafbfc;
   border-bottom: 1.5px solid #edf2f7;
 }

@@ -34,7 +34,7 @@ export default function Leaderboard() {
       <header className="hero-banner">
         <div className="hero-content">
           <div className="hero-tag">
-            <span>💖 Track. Verify. Reward.</span>
+            <span>💖 &nbsp;Track. Verify. Reward.</span>
           </div>
           <h1 className="hero-title">Smart Promoter Performance Tracker</h1>
           <div className="hero-subtitle">
@@ -43,10 +43,10 @@ export default function Leaderboard() {
           </div>
           <div className="hero-buttons">
             <Link to="/upload" className="btn btn-primary">
-              ☁️ Upload Proof
+              ☁️&nbsp;&nbsp;Upload Proof
             </Link>
             <button className="btn btn-secondary" onClick={scrollToLeaderboard}>
-              🏆 View Leaderboard
+              🏆&nbsp;&nbsp;View Leaderboard
             </button>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function Leaderboard() {
               <div className="stat-info">
                 <span className="stat-label">Today's Signups</span>
                 <span className="stat-value">{data.today_valid}</span>
-                <span className="stat-hint">New this morning</span>
+                <span className="stat-hint">New today</span>
               </div>
             </div>
 
@@ -108,21 +108,23 @@ export default function Leaderboard() {
               <div className="stat-icon-wrapper top">🏆</div>
               <div className="stat-info">
                 <span className="stat-label">Top Promoter</span>
-                <span className="stat-value" style={{ fontSize: "1.2rem", paddingTop: 4 }}>
-                  {topPromoterName}
+                <span className="stat-value" style={{ fontSize: "1.3rem", fontWeight: 700, paddingTop: 4 }}>
+                  {topPromoterName && topPromoterName !== "None" ? topPromoterName : "暂无"}
                 </span>
-                <span className="stat-hint">{topPromoterCount} signups</span>
+                <span className="stat-hint">
+                  {topPromoterName && topPromoterName !== "None" ? `${topPromoterCount} signups` : "0 signups"}
+                </span>
               </div>
             </div>
           </section>
 
-          {/* 3. Leaderboard Split Section */}
-          <section id="leaderboard-section" className="leaderboard-container">
+          {/* 3. Leaderboard Section */}
+          <section id="leaderboard-section" className="leaderboard-container full-width">
             {/* Left: Top Promoters Table */}
-            <div className="table-card">
+            <div className="table-card relative-card">
               <div className="card-title-wrapper">
                 <span className="card-title-icon">👑</span>
-                <h2 className="card-title">Top Promoters</h2>
+                <h2 className="card-title">&nbsp;&nbsp;Top Promoters</h2>
               </div>
 
               {data.entries.length > 0 ? (
@@ -187,22 +189,14 @@ export default function Leaderboard() {
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Right: Bunny Card */}
-            <aside className="leaderboard-bunny-card">
+              {/* Bunny Mascot Illustration as pure bottom-right decoration */}
               <img
                 src="/baito_bunny.png"
                 alt="BaitoTrack Bunny Mascot"
-                className="bunny-image"
+                className="leaderboard-bunny-decor"
               />
-              <h3 style={{ fontSize: "1.1rem", marginBottom: 8, color: "var(--primary)" }}>
-                Keep it up!
-              </h3>
-              <p className="bunny-text">
-                Every validated signup gets you closer to the top spot. Check back for real-time updates!
-              </p>
-            </aside>
+            </div>
           </section>
         </>
       )}
