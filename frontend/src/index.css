@@ -1215,3 +1215,358 @@ h1, h2, h3, h4 {
     width: 100%;
   }
 }
+
+/* ──────────────────────────────────────────────
+   Premium BaitoTrack Leaderboard & Podiums (Mockup Background Version)
+   ────────────────────────────────────────────── */
+
+.baitotrack-leaderboard-root {
+  margin-top: 50px;
+  padding: 130px 40px 80px 40px; /* Top padding clears the printed leaderboard header */
+  background: url('/leaderboard_bg.png') no-repeat center center;
+  background-size: cover;
+  border-radius: 32px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(255, 90, 128, 0.02);
+  border: 1px solid rgba(255, 90, 128, 0.03);
+}
+
+/* Grid layout: Left Podiums, Right table */
+.leaderboard-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: end;
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 1024px) {
+  .leaderboard-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 50px;
+  }
+}
+
+/* Podiums styling */
+.podiums-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  padding-bottom: 20px;
+}
+
+.podium-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 180px;
+  position: relative;
+}
+
+/* Podiums distinct Heights & Order */
+.podium-item.place-2 {
+  order: 1;
+}
+.podium-item.place-1 {
+  order: 2;
+  transform: translateY(-20px);
+}
+.podium-item.place-3 {
+  order: 3;
+}
+
+/* Avatars & Medal badges */
+.avatar-wrapper {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 12px;
+}
+
+.podium-item.place-1 .avatar-wrapper {
+  width: 96px;
+  height: 96px;
+}
+
+.podium-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  background-color: var(--primary-light);
+  overflow: hidden;
+}
+
+.medal-badge {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border: 2px solid #ffffff;
+}
+
+.podium-item.place-1 .medal-badge {
+  width: 34px;
+  height: 34px;
+  bottom: -6px;
+  font-size: 1rem;
+}
+
+.medal-gold {
+  background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+}
+
+.medal-silver {
+  background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+}
+
+.medal-bronze {
+  background: linear-gradient(135deg, #ffedd5 0%, #ea580c 100%);
+}
+
+.crown-mini {
+  position: absolute;
+  top: -16px;
+  font-size: 1.1rem;
+  transform: rotate(-10deg);
+}
+
+/* Details */
+.podium-details {
+  text-align: center;
+  margin-bottom: 12px;
+  z-index: 2;
+}
+
+.podium-details .promoter-name {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.podium-details .signup-count {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.podium-item.place-1 .signup-count {
+  font-size: 1.9rem;
+}
+
+.podium-details .signup-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* 3D Cylindrical blocks */
+.podium-block {
+  width: 100%;
+  border-radius: 20px 20px 0 0;
+  box-shadow: inset 0 6px 10px rgba(255,255,255,0.7), 0 10px 25px rgba(0,0,0,0.03);
+}
+
+.block-gold {
+  height: 140px;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  border: 2px solid #fde68a;
+  border-bottom: none;
+}
+
+.block-silver {
+  height: 90px;
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #bfdbfe;
+  border-bottom: none;
+}
+
+.block-bronze {
+  height: 70px;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border: 2px solid #fed7aa;
+  border-bottom: none;
+}
+
+/* Premium Card (Right side layout) */
+.premium-card {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 28px !important;
+  padding: 40px 30px 30px 30px !important;
+  border: 1px solid rgba(255, 90, 128, 0.08) !important;
+  box-shadow: 0 20px 50px rgba(255, 90, 128, 0.04) !important;
+  box-sizing: border-box;
+}
+
+/* Pink Ribbon Badge */
+.ribbon-wrapper {
+  position: absolute;
+  top: -15px;
+  left: 36px;
+  z-index: 10;
+}
+
+.pink-ribbon {
+  background: linear-gradient(135deg, #ff7e9e 0%, #ff527c 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 8px 24px;
+  border-radius: 30px;
+  box-shadow: 0 6px 14px rgba(255, 82, 124, 0.25);
+  border: 2px solid #ffffff;
+}
+
+/* Mascot Sitting on Table Card */
+.mascot-bunny-container {
+  position: absolute;
+  top: -85px;
+  right: 15px;
+  z-index: 1;
+}
+
+.bunny-mascot-img {
+  width: 140px;
+  height: auto;
+  pointer-events: none;
+  animation: dance 3s ease-in-out infinite alternate;
+}
+
+@media (max-width: 600px) {
+  .mascot-bunny-container {
+    display: none;
+  }
+  .podiums-container {
+    transform: scale(0.9);
+  }
+}
+
+/* Clean ranks table */
+.spec-table-wrapper {
+  margin-top: 15px;
+}
+
+.clean-table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+.clean-table th {
+  border-bottom: none !important;
+  padding: 8px 12px !important;
+}
+
+.clean-table tr td {
+  border-bottom: none !important;
+  background-color: #fafbfc;
+  padding: 12px 16px !important;
+}
+
+.clean-table tr td:first-child {
+  border-radius: 16px 0 0 16px;
+}
+
+.clean-table tr td:last-child {
+  border-radius: 0 16px 16px 0;
+}
+
+.clean-table tr:hover td {
+  background-color: #f7f9fa;
+}
+
+.rank-td {
+  color: var(--text-muted);
+  width: 50px;
+  font-size: 1rem;
+}
+
+/* Name and circular mini-avatar cell */
+.name-avatar-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mini-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.06);
+}
+
+.promoter-name-text {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.92rem;
+}
+
+/* Progress filling bar cell */
+.progress-value-cell {
+  width: 200px;
+}
+
+.bar-val-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.rank-progress-bg {
+  flex: 1;
+  height: 10px;
+  background-color: #eef2f5;
+  border-radius: 6px;
+  overflow: hidden;
+  max-width: 120px;
+}
+
+.rank-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff9bb3 0%, #ff5c84 100%);
+  border-radius: 6px;
+}
+
+.valid-count-number {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 1.1rem;
+  min-width: 30px;
+  text-align: right;
+}
+
+.avatar-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
