@@ -176,13 +176,51 @@ def is_plausible_layout(text: str) -> bool:
     return any(kw in text_lower for kw in keywords)
 
 
+def preprocess_image_for_ocr(image_path: str) -> str:
+    """
+    Enhance image contrast and sharpness to improve OCR accuracy on noisy screen photos.
+    Saves the preprocessed image to a temp file and returns its path.
+    """
+    try:
+        from PIL import Image, ImageEnhance
+        import os
+        
+        dir_name = os.path.dirname(image_path)
+        base_name = os.path.basename(image_path)
+        temp_prep_path = os.path.join(dir_name, "prep_" + base_name)
+        
+        with Image.open(image_path) as img:
+            # 1. Convert to grayscale to remove color channel moiré/rainbow noise
+            gray = img.convert('L')
+            
+            # 2. Upscale 1.5x (using Lanczos filter) to make text details larger and easier to segment
+            width, height = gray.size
+            resized = gray.resize((int(width * 1.5), int(height * 1.5)), Image.Resampling.LANCZOS)
+            
+            # 3. Enhance contrast (increase by 1.8x to make dark text stand out against light backgrounds)
+            contrast_enhancer = ImageEnhance.Contrast(resized)
+            contrast_img = contrast_enhancer.enhance(1.8)
+            
+            # 4. Enhance sharpness (increase by 1.5x to sharpen blurred text strokes)
+            sharpness_enhancer = ImageEnhance.Sharpness(contrast_img)
+            sharp_img = sharpness_enhancer.enhance(1.5)
+            
+            sharp_img.save(temp_prep_path)
+            print(f"[OCR] Image preprocessed and saved to: {temp_prep_path}")
+            return temp_prep_path
+    except Exception as e:
+        print(f"[OCR] Preprocessing failed: {e}. Using original image.")
+        return image_path
+
+
 def process_image(image_path: str) -> Tuple[Optional[str], str]:
     """
     OCR & Extraction Pipeline:
-      1. Run EasyOCR on the FULL image (no cropping).
-      2. If layout is plausible, attempt extraction (LLM + Regex).
-      3. If failed or layout not plausible, try rotations (180, 270, 90) in order.
-      4. Returns the extracted name and the best raw text.
+      1. Preprocess image (enhance contrast, sharpen, grayscale, resize).
+      2. Run EasyOCR on the preprocessed image.
+      3. If layout is plausible, attempt extraction (LLM + Regex).
+      4. If failed or layout not plausible, try rotations (180, 270, 90) on the preprocessed image.
+      5. Returns the extracted name and the best raw text.
     """
     try:
         from PIL import Image
@@ -190,27 +228,27 @@ def process_image(image_path: str) -> Tuple[Optional[str], str]:
     except ImportError:
         pass
 
+    # Preprocess first
+    enhanced_path = preprocess_image_for_ocr(image_path)
+
     best_text = ""
+    username = None
+    last_raw_text = ""
     
-    # We will try orientations in this order:
-    # 0 (original), 180 (upside down), 270 (90 deg clockwise), 90 (90 deg counter-clockwise)
+    # Try orientations: 0 (original), 180 (upside down), 270 (90 deg clockwise), 90 (90 deg counter-clockwise)
     orientations = [0, 180, 270, 90]
     
     for angle in orientations:
         temp_rotated_path = None
         try:
             if angle == 0:
-                current_path = image_path
+                current_path = enhanced_path
             else:
-                dir_name = os.path.dirname(image_path)
-                base_name = os.path.basename(image_path)
+                dir_name = os.path.dirname(enhanced_path)
+                base_name = os.path.basename(enhanced_path)
                 temp_rotated_path = os.path.join(dir_name, f"rotated_{angle}_{base_name}")
                 
-                with Image.open(image_path) as img:
-                    # PIL rotate uses counter-clockwise angle.
-                    # 180 = upside down
-                    # 270 = rotates 270 deg counter-clockwise (which is 90 deg clockwise)
-                    # 90 = rotates 90 deg counter-clockwise
+                with Image.open(enhanced_path) as img:
                     rotated_img = img.rotate(angle, expand=True)
                     rotated_img.save(temp_rotated_path)
                 current_path = temp_rotated_path
@@ -219,19 +257,18 @@ def process_image(image_path: str) -> Tuple[Optional[str], str]:
             if angle == 0:
                 best_text = raw_text
                 
-            # Clean up temp file immediately
+            # Clean up temp rotated file immediately
             if temp_rotated_path:
                 try:
                     if os.path.exists(temp_rotated_path):
                         os.remove(temp_rotated_path)
                 except Exception as cleanup_err:
-                    print(f"[OCR] Temp rotated image cleanup error for angle {angle}: {cleanup_err}")
+                    print(f"[OCR] Temp rotated cleanup error for angle {angle}: {cleanup_err}")
             
             if not raw_text.strip():
                 continue
                 
-            # Heuristic check: does it look like a valid vertical orientation?
-            # If yes, we try extracting.
+            # Heuristic check
             if is_plausible_layout(raw_text):
                 print(f"[OCR] Orientation {angle}° looks plausible. Extracting...")
                 username = extract_username_with_llm(raw_text)
@@ -240,10 +277,10 @@ def process_image(image_path: str) -> Tuple[Optional[str], str]:
                 
                 if username:
                     print(f"[OCR] Successful extraction at {angle}°: '{username}'")
-                    return username, raw_text
+                    last_raw_text = raw_text
+                    break
             else:
-                print(f"[OCR] Orientation {angle}° raw text layout is not plausible. Skipping LLM.")
-                # Save it as best text if it has more length than previous
+                print(f"[OCR] Orientation {angle}° text layout is not plausible. Skipping LLM.")
                 if len(raw_text) > len(best_text):
                     best_text = raw_text
 
@@ -256,9 +293,20 @@ def process_image(image_path: str) -> Tuple[Optional[str], str]:
                 except:
                     pass
 
-    # Final fallback: if no rotation was deemed "plausible" enough to succeed,
-    # run LLM extraction on the raw text of the original 0° image anyway just in case.
-    print("[OCR] All rotation heuristics failed. Running final fallback extraction on original 0° text.")
+    # Clean up the main preprocessed image if we created a temp one
+    if enhanced_path != image_path:
+        try:
+            if os.path.exists(enhanced_path):
+                os.remove(enhanced_path)
+        except Exception as cleanup_err:
+            print(f"[OCR] Preprocessed image cleanup error: {cleanup_err}")
+
+    # If we broke out with a username, return it
+    if username:
+        return username, last_raw_text
+
+    # Final fallback on best text if all orientations failed
+    print("[OCR] All rotation heuristics failed. Running final fallback extraction on original text.")
     username = extract_username_with_llm(best_text)
     if not username:
         username = extract_username_fallback(best_text)
