@@ -157,6 +157,7 @@ def process_image(image_path: str) -> Tuple[Optional[str], str]:
       1. Run EasyOCR on the FULL image (no cropping).
       2. Call DeepSeek API on the full raw text using layout-aware prompt.
       3. Fall back to regex if needed.
+      4. If failed, rotate 180 degrees (upside down) and retry.
     """
     try:
         raw_text = extract_text_from_image(image_path)
@@ -169,6 +170,42 @@ def process_image(image_path: str) -> Tuple[Optional[str], str]:
         # 2. Fall back to regex if LLM failed
         if not username:
             username = extract_username_fallback(raw_text)
+
+        # 3. If extraction failed, try rotating the image 180 degrees (upside down) and retrying
+        if not username:
+            print(f"[OCR] Username extraction failed. Trying 180 degree rotation fallback...")
+            try:
+                from PIL import Image
+                import os
+                
+                dir_name = os.path.dirname(image_path)
+                base_name = os.path.basename(image_path)
+                temp_rotated_path = os.path.join(dir_name, "rotated_" + base_name)
+                
+                with Image.open(image_path) as img:
+                    rotated_img = img.rotate(180)
+                    rotated_img.save(temp_rotated_path)
+                
+                print(f"[OCR] Rotated image saved to: {temp_rotated_path}. Running OCR on rotated image.")
+                rotated_raw_text = extract_text_from_image(temp_rotated_path)
+                
+                # Clean up the temp rotated image file
+                try:
+                    if os.path.exists(temp_rotated_path):
+                        os.remove(temp_rotated_path)
+                except Exception as cleanup_err:
+                    print(f"[OCR] Temp rotated image cleanup error: {cleanup_err}")
+                
+                if rotated_raw_text.strip():
+                    rotated_username = extract_username_with_llm(rotated_raw_text)
+                    if not rotated_username:
+                        rotated_username = extract_username_fallback(rotated_raw_text)
+                    
+                    if rotated_username:
+                        print(f"[OCR] Successfully extracted username '{rotated_username}' from rotated image!")
+                        return rotated_username, rotated_raw_text
+            except Exception as rotation_err:
+                print(f"[OCR] Rotation fallback failed: {rotation_err}")
 
         return username, raw_text
     except Exception as e:
