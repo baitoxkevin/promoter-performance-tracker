@@ -78,28 +78,17 @@ export default function Leaderboard() {
     });
   };
 
-  // Mock fallback characters for ranks that don't have real data yet
-  const mockEntries = [
-    { rank: 1, promoter_name: "Jessica", valid_count: 387 },
-    { rank: 2, promoter_name: "Alex", valid_count: 321 },
-    { rank: 3, promoter_name: "Samantha", valid_count: 278 },
-    { rank: 4, promoter_name: "Daniel", valid_count: 256 },
-    { rank: 5, promoter_name: "Mia", valid_count: 213 },
-    { rank: 6, promoter_name: "Ethan", valid_count: 189 },
-    { rank: 7, promoter_name: "Olivia", valid_count: 165 },
-    { rank: 8, promoter_name: "Liam", valid_count: 142 },
-  ];
+  // Render data strictly from the database (no mock data fallbacks)
+  const entries = data && data.entries.length > 0
+    ? data.entries.map((item, index) => ({
+        rank: index + 1,
+        promoter_name: item.promoter_name,
+        valid_count: item.valid_count,
+      }))
+    : [];
 
-  // Merge real API data with mock fallbacks to always display 8 entries
-  const realEntries = data && data.entries.length > 0 ? data.entries : [];
-  const entries = mockEntries.map((mock, i) =>
-    i < realEntries.length
-      ? { ...realEntries[i], rank: i + 1 }
-      : mock
-  );
-
-  const topPromoterName = entries[0].promoter_name;
-  const topPromoterCount = entries[0].valid_count;
+  const topPromoterName = entries[0]?.promoter_name || "None";
+  const topPromoterCount = entries[0]?.valid_count || 0;
 
   return (
     <div className="page">
@@ -209,23 +198,30 @@ export default function Leaderboard() {
             </div>
 
             {/* ── Podiums Stand Text Overlays (Jessica, Alex, Samantha) ── */}
-            <div className="podium-overlay second">
-              <div className="podium-name">{entries[1]?.promoter_name || "Alex"}</div>
-              <div className="podium-value">{entries[1]?.valid_count || 321}</div>
-              <div className="podium-label">signups</div>
-            </div>
+            {/* ── Podiums Stand Text Overlays (Conditional based on real database records) ── */}
+            {entries[1] && (
+              <div className="podium-overlay second">
+                <div className="podium-name">{entries[1].promoter_name}</div>
+                <div className="podium-value">{entries[1].valid_count}</div>
+                <div className="podium-label">signups</div>
+              </div>
+            )}
 
-            <div className="podium-overlay first">
-              <div className="podium-name">{entries[0]?.promoter_name || "Jessica"}</div>
-              <div className="podium-value first-place">{entries[0]?.valid_count || 387}</div>
-              <div className="podium-label">signups</div>
-            </div>
+            {entries[0] && (
+              <div className="podium-overlay first">
+                <div className="podium-name">{entries[0].promoter_name}</div>
+                <div className="podium-value first-place">{entries[0].valid_count}</div>
+                <div className="podium-label">signups</div>
+              </div>
+            )}
 
-            <div className="podium-overlay third">
-              <div className="podium-name">{entries[2]?.promoter_name || "Samantha"}</div>
-              <div className="podium-value">{entries[2]?.valid_count || 278}</div>
-              <div className="podium-label">signups</div>
-            </div>
+            {entries[2] && (
+              <div className="podium-overlay third">
+                <div className="podium-name">{entries[2].promoter_name}</div>
+                <div className="podium-value">{entries[2].valid_count}</div>
+                <div className="podium-label">signups</div>
+              </div>
+            )}
 
             {/* ── All Rankings Card Overlay ── */}
             <div className="all-rankings-card">
