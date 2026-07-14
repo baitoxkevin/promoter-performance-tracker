@@ -1663,7 +1663,8 @@ h4 {
   font-family: 'Quicksand', var(--font-main), sans-serif;
   font-size: 1.05cqw;
   color: #333333;
-  font-weight: 500; /* Medium */
+  font-weight: 500;
+  /* Medium */
   margin: 0;
   line-height: 1.2;
 }
@@ -1672,7 +1673,8 @@ h4 {
 .podium-value {
   font-family: 'Quicksand', var(--font-main), sans-serif;
   font-size: 2.3cqw;
-  font-weight: 700; /* Bold */
+  font-weight: 700;
+  /* Bold */
   line-height: 1.1;
   margin: 0.1cqw 0;
 }
@@ -1685,7 +1687,8 @@ h4 {
 /* 1st place: Jessica (暖棕黄色 #B46C2C, extra bold and larger) */
 .podium-overlay.first .podium-value {
   font-size: 2.95cqw;
-  font-weight: 800; /* ExtraBold */
+  font-weight: 800;
+  /* ExtraBold */
   color: #B46C2C;
 }
 
@@ -1740,10 +1743,10 @@ h4 {
 }
 
 .podium-avatar-wrapper.first {
-  width: 6.8cqw;
-  height: 6.8cqw;
-  left: 23.2%;
-  top: 41.0%;
+  width: 7.2cqw;
+  height: 7.2cqw;
+  left: 23.0%;
+  top: 40.8%;
 }
 
 .podium-avatar-wrapper.third {
@@ -1755,6 +1758,7 @@ h4 {
 
 /* Responsive adjustment for mobile screen dimensions */
 @media (max-width: 900px) {
+
   .podium-overlay,
   .podium-avatar-wrapper {
     display: none;
