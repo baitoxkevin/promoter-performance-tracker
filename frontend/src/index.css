@@ -1385,7 +1385,7 @@ h4 {
 .all-rankings-card {
   position: absolute;
   /* Aligned precisely with the white card graphic below the All Rankings ribbon */
-  right: 4%;
+  right: 4.5%;
   top: 38.5%;
   width: 43.6%;
   height: 60.5%;
@@ -1619,3 +1619,87 @@ h4 {
     padding: 8px 10px;
   }
 }
+
+/* ──────────────────────────────────────────────
+   Podiums Stand Text Overlays (Jessica, Alex, Samantha)
+   ────────────────────────────────────────────── */
+
+.podium-overlay {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+/* Stand positioning coordinates */
+.podium-overlay.second {
+  left: 9.0%;
+  width: 11.3%;
+  top: 57.5%;
+  height: 21.0%;
+}
+
+.podium-overlay.first {
+  left: 24.3%;
+  width: 12.0%;
+  top: 52.0%;
+  height: 27.0%;
+}
+
+.podium-overlay.third {
+  left: 40.5%;
+  width: 11.0%;
+  top: 58.0%;
+  height: 20.5%;
+}
+
+/* Promoter Name: Jessica, Alex, Samantha */
+.podium-name {
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 1.05cqw;
+  color: #4a5568;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Core Data: 387, 321, 278 (Bold bubbly numeric font) */
+.podium-value {
+  font-family: 'Fredoka', 'Fredoka One', cursive, sans-serif;
+  font-size: 2.3cqw;
+  color: #2d3748;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0.1cqw 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+/* 1st place: massive, showing extreme dominance */
+.podium-value.first-place {
+  font-size: 2.95cqw;
+  color: #000000;
+  font-weight: 600;
+  text-shadow: 0 2px 8px rgba(255, 90, 128, 0.08);
+}
+
+/* Label: signups (light gray, thin) */
+.podium-label {
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 0.8cqw;
+  color: #a0aec0;
+  font-weight: 500;
+  text-transform: lowercase;
+  margin-top: -0.1cqw;
+}
+
+/* Responsive adjustment for mobile screen dimensions */
+@media (max-width: 900px) {
+  .podium-overlay {
+    display: none; /* Hide absolute podium overlays on mobile stack layout */
+  }
+}

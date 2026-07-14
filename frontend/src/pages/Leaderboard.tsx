@@ -208,6 +208,25 @@ export default function Leaderboard() {
               </div>
             </div>
 
+            {/* ── Podiums Stand Text Overlays (Jessica, Alex, Samantha) ── */}
+            <div className="podium-overlay second">
+              <div className="podium-name">{entries[1]?.promoter_name || "Alex"}</div>
+              <div className="podium-value">{entries[1]?.valid_count || 321}</div>
+              <div className="podium-label">signups</div>
+            </div>
+
+            <div className="podium-overlay first">
+              <div className="podium-name">{entries[0]?.promoter_name || "Jessica"}</div>
+              <div className="podium-value first-place">{entries[0]?.valid_count || 387}</div>
+              <div className="podium-label">signups</div>
+            </div>
+
+            <div className="podium-overlay third">
+              <div className="podium-name">{entries[2]?.promoter_name || "Samantha"}</div>
+              <div className="podium-value">{entries[2]?.valid_count || 278}</div>
+              <div className="podium-label">signups</div>
+            </div>
+
             {/* ── All Rankings Card Overlay ── */}
             <div className="all-rankings-card">
               {/* Horizontal evenly split headers */}
