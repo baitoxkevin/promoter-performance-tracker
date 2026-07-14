@@ -1324,3 +1324,204 @@ h1, h2, h3, h4 {
     gap: 2.0cqw;
   }
 }
+
+/* ──────────────────────────────────────────────
+   All Rankings Card Overlay (Ranks 4~8)
+   ────────────────────────────────────────────── */
+
+.all-rankings-card {
+  position: absolute;
+  /* Aligned precisely with the white card graphic below the All Rankings ribbon */
+  right: 15.2%;
+  top: 42.5%;
+  width: 33.6%;
+  height: 44.5%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  z-index: 8;
+  overflow: hidden;
+}
+
+/* ── Table Header Row (Fog Gray Background) ── */
+.ar-header {
+  display: flex;
+  align-items: center;
+  background-color: #f5f6f8; /* 极浅雾灰色 */
+  border-radius: 8px;
+  padding: 0.55cqw 0.8cqw;
+  margin-bottom: 0.6cqw;
+}
+
+.ar-header span {
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 0.82cqw;
+  color: #718096; /* 浅炭灰色 */
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Column widths — Rank (18%), Name (42%), Signups (40%) horizontally distributed and centered */
+.ar-col-rank {
+  width: 18%;
+  flex-shrink: 0;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.ar-col-name {
+  width: 42%;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: 1.5cqw;
+}
+.ar-col-signups {
+  width: 40%;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ── Scrollable list wrapper ── */
+.ar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 3px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom pastel scrollbar */
+.ar-list::-webkit-scrollbar { width: 4px; }
+.ar-list::-webkit-scrollbar-track { background: transparent; }
+.ar-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 90, 128, 0.12);
+  border-radius: 2px;
+}
+.ar-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 90, 128, 0.28);
+}
+
+/* ── Individual Row (No borders, whitespace separation) ── */
+.ar-row {
+  display: flex;
+  align-items: center;
+  padding: 0.6cqw 0.8cqw;
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.ar-row:hover {
+  background-color: #fafbfc;
+}
+
+/* Rank number — small, muted, centered */
+.ar-rank-num {
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 0.9cqw;
+  font-weight: 500;
+  color: #718096;
+}
+
+/* Avatar + username row */
+.ar-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.7cqw;
+  width: 100%;
+}
+
+.ar-avatar {
+  width: 2.6cqw;
+  height: 2.6cqw;
+  border-radius: 50%;
+  overflow: hidden;
+  /* Soft peach glow halo — no harsh borders */
+  box-shadow: 0 0 0 2px rgba(255, 220, 230, 0.5), 0 2px 8px rgba(255, 90, 128, 0.06);
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+.ar-avatar .avatar-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ar-username {
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 0.9cqw;
+  font-weight: 500;
+  color: #3a3f47;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Progress bar group */
+.ar-bar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.8cqw;
+  width: 90%;
+  justify-content: center;
+}
+
+.ar-track {
+  flex: 1;
+  height: 0.55cqw;
+  min-height: 5px;
+  background-color: #e2e8f0;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.ar-fill {
+  height: 100%;
+  /* Soft misty peach-pink — NOT vivid, maintaining the desaturated macaron feel */
+  background: linear-gradient(90deg, #ffd0da 0%, #ffb0c3 100%);
+  border-radius: 100px;
+  transition: width 0.8s ease-out;
+}
+
+.ar-count {
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 1.0cqw;
+  font-weight: 700;
+  color: #2d3748;
+  min-width: 2.5cqw;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Responsive: All Rankings Card on smaller screens ── */
+@media (max-width: 900px) {
+  .all-rankings-card {
+    position: relative;
+    right: auto;
+    top: auto;
+    width: 94%;
+    margin: 20px auto 0;
+    height: auto;
+    min-height: 300px;
+    padding: 20px 10px;
+    border-radius: var(--radius-lg);
+    background: #ffffff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.018);
+  }
+  .ar-header span { font-size: 11px; }
+  .ar-rank-num { font-size: 13px; }
+  .ar-avatar { width: 30px; height: 30px; }
+  .ar-username { font-size: 13px; }
+  .ar-track { height: 6px; }
+  .ar-count { font-size: 13px; min-width: 32px; }
+  .ar-row { padding: 8px 10px; }
+}
+

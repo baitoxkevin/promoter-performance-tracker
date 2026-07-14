@@ -78,8 +78,8 @@ export default function Leaderboard() {
     });
   };
 
-  // Mock and real data merge
-  const entries = data && data.entries.length > 0 ? data.entries : [
+  // Mock fallback characters for ranks that don't have real data yet
+  const mockEntries = [
     { rank: 1, promoter_name: "Jessica", valid_count: 387 },
     { rank: 2, promoter_name: "Alex", valid_count: 321 },
     { rank: 3, promoter_name: "Samantha", valid_count: 278 },
@@ -89,6 +89,14 @@ export default function Leaderboard() {
     { rank: 7, promoter_name: "Olivia", valid_count: 165 },
     { rank: 8, promoter_name: "Liam", valid_count: 142 },
   ];
+
+  // Merge real API data with mock fallbacks to always display 8 entries
+  const realEntries = data && data.entries.length > 0 ? data.entries : [];
+  const entries = mockEntries.map((mock, i) =>
+    i < realEntries.length
+      ? { ...realEntries[i], rank: i + 1 }
+      : mock
+  );
 
   const topPromoterName = entries[0].promoter_name;
   const topPromoterCount = entries[0].valid_count;
@@ -197,6 +205,51 @@ export default function Leaderboard() {
               <div className="title-text-group">
                 <h2 className="leaderboard-title">Leaderboard</h2>
                 <p className="leaderboard-subtext">Top promoters who shine every day!</p>
+              </div>
+            </div>
+
+            {/* ── All Rankings Card Overlay ── */}
+            <div className="all-rankings-card">
+              {/* Horizontal evenly split headers */}
+              <div className="ar-header">
+                <span className="ar-col-rank">Rank</span>
+                <span className="ar-col-name">Promoter Name</span>
+                <span className="ar-col-signups">Valid Signups</span>
+              </div>
+
+              {/* Scrollable list of ranks 4~8 */}
+              <div className="ar-list">
+                {entries.slice(3).map((item) => {
+                  const maxVal = entries[3]?.valid_count || 1;
+                  const pct = Math.min(100, Math.max(6, (item.valid_count / maxVal) * 100));
+                  return (
+                    <div className="ar-row" key={item.rank}>
+                      {/* Rank number (centered) */}
+                      <div className="ar-col-rank ar-rank-num">{item.rank}</div>
+
+                      {/* Avatar + name (left-aligned inside column) */}
+                      <div className="ar-col-name ar-profile">
+                        <div className="ar-avatar">
+                          {/* Placeholder white circular avatar */}
+                          <svg viewBox="0 0 100 100" className="avatar-svg">
+                            <circle cx="50" cy="50" r="48" fill="#f7f7f8" stroke="#eee" strokeWidth="1.5"/>
+                            <circle cx="50" cy="52" r="20" fill="#e8e8ec"/>
+                            <circle cx="50" cy="38" r="12" fill="#e8e8ec"/>
+                          </svg>
+                        </div>
+                        <span className="ar-username">{item.promoter_name}</span>
+                      </div>
+
+                      {/* Progress bar + exact signup count */}
+                      <div className="ar-col-signups ar-bar-group">
+                        <div className="ar-track">
+                          <div className="ar-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="ar-count">{item.valid_count}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>
