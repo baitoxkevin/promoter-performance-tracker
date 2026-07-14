@@ -1276,7 +1276,7 @@ h1, h2, h3, h4 {
 .leaderboard-title {
   font-family: var(--font-main); /* 'Outfit', sans-serif which is very clean and slim */
   font-size: 3.8cqw;
-  font-weight: 300; /* Slim/thin font weight */
+  font-weight: 400; /* Bolder by one step (from 300 to 400) */
   color: var(--text-main);
   margin: 0;
   line-height: 1.1;
