@@ -46,28 +46,30 @@ export default function ResultModal({ result, onClose }: Props) {
           </button>
         </div>
 
-        {/* Results List */}
-        {result.results.map((item, index) => {
-          const config = STATUS_CONFIG[item.status] || STATUS_CONFIG.ocr_failed;
+        {/* Results List (scrollable) */}
+        <div className="results-list-container">
+          {result.results.map((item, index) => {
+            const config = STATUS_CONFIG[item.status] || STATUS_CONFIG.ocr_failed;
 
-          return (
-            <div className="result-item" key={index}>
-              <div className="result-icon">{config.icon}</div>
-              <div className="result-details">
-                <div className="result-filename">{item.filename}</div>
-                <div className="result-message">
-                  {item.extracted_username && (
-                    <>
-                      Username: <span className="result-username">{item.extracted_username}</span>
-                      <br />
-                    </>
-                  )}
-                  <span style={{ color: config.color }}>{item.message}</span>
+            return (
+              <div className="result-item" key={index}>
+                <div className="result-icon">{config.icon}</div>
+                <div className="result-details">
+                  <div className="result-filename">{item.filename}</div>
+                  <div className="result-message">
+                    {item.extracted_username && (
+                      <>
+                        Username: <span className="result-username">{item.extracted_username}</span>
+                        <br />
+                      </>
+                    )}
+                    <span style={{ color: config.color }}>{item.message}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
         {/* Close Button */}
         <button

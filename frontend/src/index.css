@@ -847,6 +847,31 @@ h1, h2, h3, h4 {
   color: var(--primary);
 }
 
+.results-list-container {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-bottom: 12px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling for Safari iOS mobile */
+}
+
+/* Custom scrollbar for scrollable results list */
+.results-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+.results-list-container::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 3px;
+}
+.results-list-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+.results-list-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
 .result-item {
   display: flex;
   gap: 14px;
