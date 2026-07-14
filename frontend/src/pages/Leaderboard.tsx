@@ -217,9 +217,18 @@ export default function Leaderboard() {
             </div>
           </section>
 
-          {/* 3. Premium Leaderboard Section with Finalized Background Image (Background Only) */}
+          {/* 3. Premium Leaderboard Section with Finalized Background Image */}
           <section id="leaderboard-section" className="baitotrack-leaderboard-root" aria-label="Leaderboard">
-            {/* Background image only as requested */}
+            {/* Header Overlay (Dynamic text on top-left replicated from user screenshot) */}
+            <div className="leaderboard-header-row">
+              <div className="trophy-wrapper">
+                <span className="trophy-emoji">🏆</span>
+              </div>
+              <div className="title-text-group">
+                <h2 className="leaderboard-title">Leaderboard</h2>
+                <p className="leaderboard-subtext">Top promoters who shine every day!</p>
+              </div>
+            </div>
           </section>
         </>
       )}
