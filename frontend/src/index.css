@@ -1638,68 +1638,86 @@ h4 {
 
 /* Stand positioning coordinates */
 .podium-overlay.second {
-  left: 9.0%;
+  left: 5.75%;
   width: 11.3%;
-  top: 57.5%;
+  top: 59.5%;
   height: 21.0%;
 }
 
 .podium-overlay.first {
-  left: 24.3%;
+  left: 20.6%;
   width: 12.0%;
-  top: 52.0%;
+  top: 54.5%;
   height: 27.0%;
 }
 
 .podium-overlay.third {
-  left: 40.5%;
+  left: 36.1%;
   width: 11.0%;
-  top: 58.0%;
+  top: 60.0%;
   height: 20.5%;
 }
 
-/* Promoter Name: Jessica, Alex, Samantha */
+/* Promoter Name: Jessica, Alex, Samantha (Quicksand Medium #333333) */
 .podium-name {
   font-family: 'Quicksand', var(--font-main), sans-serif;
   font-size: 1.05cqw;
-  color: #4a5568;
-  font-weight: 500;
+  color: #333333;
+  font-weight: 500; /* Medium */
   margin: 0;
   line-height: 1.2;
 }
 
-/* Core Data: 387, 321, 278 (Bold bubbly numeric font) */
+/* Core Data: 387, 321, 278 (Quicksand Bold/ExtraBold) */
 .podium-value {
-  font-family: 'Fredoka', 'Fredoka One', cursive, sans-serif;
+  font-family: 'Quicksand', var(--font-main), sans-serif;
   font-size: 2.3cqw;
-  color: #2d3748;
-  font-weight: 600;
+  font-weight: 700; /* Bold */
   line-height: 1.1;
   margin: 0.1cqw 0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-/* 1st place: massive, showing extreme dominance */
-.podium-value.first-place {
+/* 2nd place: Alex (#333333) */
+.podium-overlay.second .podium-value {
+  color: #333333;
+}
+
+/* 1st place: Jessica (暖棕黄色 #B46C2C, extra bold and larger) */
+.podium-overlay.first .podium-value {
   font-size: 2.95cqw;
-  color: #000000;
-  font-weight: 600;
-  text-shadow: 0 2px 8px rgba(255, 90, 128, 0.08);
+  font-weight: 800; /* ExtraBold */
+  color: #B46C2C;
 }
 
-/* Label: signups (light gray, thin) */
+/* 3rd place: Samantha (暖棕橘色 #B46C2C) */
+.podium-overlay.third .podium-value {
+  color: #B46C2C;
+}
+
+/* Label: signups (Quicksand Light, color matched and lightened from numbers) */
 .podium-label {
   font-family: 'Quicksand', var(--font-main), sans-serif;
-  font-size: 0.8cqw;
-  color: #a0aec0;
-  font-weight: 500;
+  font-size: 0.9cqw;
+  font-weight: 400;
   text-transform: lowercase;
-  margin-top: -0.1cqw;
+  margin-top: 0.05cqw;
+}
+
+/* 2nd place label: light gray (#7f8c8d) derived from #333333 */
+.podium-overlay.second .podium-label {
+  color: #7f8c8d;
+}
+
+/* 1st & 3rd place label: light golden sand (#c7925e) derived from #B46C2C */
+.podium-overlay.first .podium-label,
+.podium-overlay.third .podium-label {
+  color: #c7925e;
 }
 
 /* Responsive adjustment for mobile screen dimensions */
 @media (max-width: 900px) {
   .podium-overlay {
-    display: none; /* Hide absolute podium overlays on mobile stack layout */
+    display: none;
+    /* Hide absolute podium overlays on mobile stack layout */
   }
-}
+}
