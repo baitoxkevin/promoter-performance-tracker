@@ -1365,9 +1365,9 @@ h1, h2, h3, h4 {
   text-align: center;
 }
 
-/* Column widths — Rank (18%), Name (42%), Signups (40%) horizontally distributed and centered */
+/* Column widths — Rank (12%), Name (38%), Signups (50%) horizontally distributed and centered */
 .ar-col-rank {
-  width: 18%;
+  width: 12%;
   flex-shrink: 0;
   text-align: center;
   display: flex;
@@ -1375,25 +1375,31 @@ h1, h2, h3, h4 {
   align-items: center;
 }
 .ar-col-name {
-  width: 42%;
+  width: 38%;
   flex-shrink: 0;
+  min-width: 0; /* Critical: allows username text to shrink and prevent overflow */
   display: flex;
   justify-content: flex-start;
   align-items: center;
   padding-left: 1.5cqw;
+  box-sizing: border-box;
 }
 .ar-col-signups {
-  width: 40%;
+  width: 50%;
   flex-shrink: 0;
+  min-width: 0; /* Critical: allows progress bar track to shrink and prevent overflow */
   display: flex;
   justify-content: center;
   align-items: center;
+  padding-right: 1.5cqw;
+  box-sizing: border-box;
 }
 
 /* ── Scrollable list wrapper ── */
 .ar-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   padding-right: 3px;
   -webkit-overflow-scrolling: touch;
 }
@@ -1470,8 +1476,7 @@ h1, h2, h3, h4 {
   display: flex;
   align-items: center;
   gap: 0.8cqw;
-  width: 90%;
-  justify-content: center;
+  width: 100%;
 }
 
 .ar-track {

@@ -228,24 +228,28 @@ export default function Leaderboard() {
                       <div className="ar-col-rank ar-rank-num">{item.rank}</div>
 
                       {/* Avatar + name (left-aligned inside column) */}
-                      <div className="ar-col-name ar-profile">
-                        <div className="ar-avatar">
-                          {/* Placeholder white circular avatar */}
-                          <svg viewBox="0 0 100 100" className="avatar-svg">
-                            <circle cx="50" cy="50" r="48" fill="#f7f7f8" stroke="#eee" strokeWidth="1.5"/>
-                            <circle cx="50" cy="52" r="20" fill="#e8e8ec"/>
-                            <circle cx="50" cy="38" r="12" fill="#e8e8ec"/>
-                          </svg>
+                      <div className="ar-col-name">
+                        <div className="ar-profile">
+                          <div className="ar-avatar">
+                            {/* Placeholder white circular avatar */}
+                            <svg viewBox="0 0 100 100" className="avatar-svg">
+                              <circle cx="50" cy="50" r="48" fill="#f7f7f8" stroke="#eee" strokeWidth="1.5"/>
+                              <circle cx="50" cy="52" r="20" fill="#e8e8ec"/>
+                              <circle cx="50" cy="38" r="12" fill="#e8e8ec"/>
+                            </svg>
+                          </div>
+                          <span className="ar-username">{item.promoter_name}</span>
                         </div>
-                        <span className="ar-username">{item.promoter_name}</span>
                       </div>
 
                       {/* Progress bar + exact signup count */}
-                      <div className="ar-col-signups ar-bar-group">
-                        <div className="ar-track">
-                          <div className="ar-fill" style={{ width: `${pct}%` }} />
+                      <div className="ar-col-signups">
+                        <div className="ar-bar-group">
+                          <div className="ar-track">
+                            <div className="ar-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="ar-count">{item.valid_count}</span>
                         </div>
-                        <span className="ar-count">{item.valid_count}</span>
                       </div>
                     </div>
                   );
