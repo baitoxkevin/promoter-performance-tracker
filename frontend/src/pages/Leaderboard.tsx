@@ -50,13 +50,6 @@ export default function Leaderboard() {
             </button>
           </div>
         </div>
-        <div className="hero-image-wrapper">
-          <img
-            src="/baito_banner.png"
-            alt="BaitoTrack Banner illustration"
-            className="hero-image"
-          />
-        </div>
       </header>
 
       {/* Loading overlay */}

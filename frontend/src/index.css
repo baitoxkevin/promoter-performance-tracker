@@ -198,22 +198,23 @@ h1, h2, h3, h4 {
    ────────────────────────────────────────────── */
 
 .hero-banner {
-  background: linear-gradient(135deg, #fffcfc 0%, #fff2f5 100%);
+  background: url('/gptbackground.png') no-repeat center right;
+  background-size: cover;
   border-radius: var(--radius-lg);
-  padding: 40px;
+  padding: 60px 40px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border: 1px solid rgba(255, 90, 128, 0.1);
+  border: 1px solid rgba(255, 90, 128, 0.08);
   margin-bottom: 30px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  min-height: 400px;
 }
 
 .hero-content {
   flex: 1;
-  max-width: 550px;
+  max-width: 520px;
   z-index: 2;
 }
 
