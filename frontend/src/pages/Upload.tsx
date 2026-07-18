@@ -175,7 +175,7 @@ export default function Upload() {
           {/* Gender Selector */}
           <div className="form-group">
             <label className="form-label">
-              Avatar Gender / 形象性别 *
+              Gender / 性别 *
             </label>
             <div className="gender-toggle-group">
               <button
@@ -193,9 +193,6 @@ export default function Upload() {
                 Female / 女生
               </button>
             </div>
-            <p className="form-hint">
-              Select your gender to randomly assign a cute matching chibi avatar on the leaderboard.
-            </p>
           </div>
 
           {/* Upload Zone */}
