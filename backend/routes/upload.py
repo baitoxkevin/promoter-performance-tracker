@@ -12,8 +12,9 @@ import os
 import time
 import shutil
 import tempfile
+import random
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -234,10 +235,19 @@ async def _process_single_file(
             os.unlink(temp_path)
 
 
+def get_random_avatar(gender: str) -> str:
+    num = random.randint(1, 4)
+    if gender == "male":
+        return f"/avatars/avatar_m{num}.png"
+    else:
+        return f"/avatars/avatar_f{num}.png"
+
+
 @router.post("/upload", response_model=UploadResponse)
 async def upload_screenshots(
     promoter_name: str = Form(..., min_length=1, max_length=100),
     ic_number: str = Form(..., min_length=1, max_length=50),
+    gender: str = Form(None),
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
@@ -247,6 +257,7 @@ async def upload_screenshots(
     Form fields:
       - promoter_name: The promoter's full name
       - ic_number: The promoter's IC number (used as unique identifier)
+      - gender: "male" or "female" (optional)
       - files: One or more image files (JPEG/PNG)
 
     Each image goes through:
@@ -264,6 +275,11 @@ async def upload_screenshots(
             detail=f"Too many files. Maximum is {MAX_FILES_PER_UPLOAD} per upload.",
         )
 
+    # Normalize gender input
+    selected_gender = "female"
+    if gender and gender.strip().lower() == "male":
+        selected_gender = "male"
+
     # ── Upsert promoter (find by IC number or create) ──
     promoter = (
         db.query(Promoter)
@@ -274,6 +290,8 @@ async def upload_screenshots(
         promoter = Promoter(
             name=promoter_name.strip(),
             ic_number=ic_number.strip(),
+            gender=selected_gender,
+            avatar=get_random_avatar(selected_gender),
         )
         db.add(promoter)
         db.commit()
@@ -282,7 +300,13 @@ async def upload_screenshots(
         # Update name if the promoter changed it
         if promoter.name != promoter_name.strip():
             promoter.name = promoter_name.strip()
-            db.commit()
+        
+        # If gender changed or if no avatar is assigned, assign new random avatar
+        if not promoter.avatar or (gender and promoter.gender != selected_gender):
+            promoter.gender = selected_gender
+            promoter.avatar = get_random_avatar(selected_gender)
+        
+        db.commit()
 
     # ── Process each file through the OCR pipeline ──
     results: List[SubmissionResult] = []

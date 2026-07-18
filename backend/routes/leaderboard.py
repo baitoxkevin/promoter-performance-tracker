@@ -28,28 +28,29 @@ async def get_leaderboard(db: Session = Depends(get_db)):
       - Promoters with 0 valid submissions are excluded from the ranking.
       - Ties are broken alphabetically by promoter name.
     """
-    # ── Query: count valid usernames per promoter, sorted by count desc ──
     results = (
         db.query(
             Promoter.name,
             Promoter.ic_number,
+            Promoter.avatar,
             func.count(ValidUsername.id).label("valid_count"),
         )
         .join(ValidUsername, ValidUsername.promoter_id == Promoter.id)
-        .group_by(Promoter.id, Promoter.name, Promoter.ic_number)
+        .group_by(Promoter.id, Promoter.name, Promoter.ic_number, Promoter.avatar)
         .order_by(func.count(ValidUsername.id).desc(), Promoter.name.asc())
         .all()
     )
 
     # Build ranked entries
     entries = []
-    for rank, (name, ic_number, valid_count) in enumerate(results, start=1):
+    for rank, (name, ic_number, avatar, valid_count) in enumerate(results, start=1):
         entries.append(
             LeaderboardEntry(
                 rank=rank,
                 promoter_name=name,
                 ic_number_masked=mask_ic_number(ic_number),
                 valid_count=valid_count,
+                avatar=avatar,
             )
         )
 

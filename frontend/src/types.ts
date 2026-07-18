@@ -23,6 +23,7 @@ export interface LeaderboardEntry {
   promoter_name: string;
   ic_number_masked: string;
   valid_count: number;
+  avatar?: string;
 }
 
 export interface LeaderboardResponse {
@@ -64,4 +65,5 @@ export interface AdminStatsResponse {
 export interface PromoterInfo {
   name: string;
   ic_number: string;
+  gender?: string;
 }

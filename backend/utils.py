@@ -95,8 +95,6 @@ def save_uploaded_image(source_path: Path, dest_folder: Path, filename: str) -> 
 
     # Return path relative to UPLOAD_DIR for database storage
     return str(dest_path.relative_to(UPLOAD_DIR))
-
-
 def mask_ic_number(ic_number: str) -> str:
     """
     Mask an IC number for display, showing only the last 4 characters.

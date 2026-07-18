@@ -1007,6 +1007,7 @@ h4 {
   font-size: 0.76rem;
   font-weight: 600;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .status-badge.valid {
@@ -1739,21 +1740,21 @@ h4 {
   width: 6.0cqw;
   height: 6.0cqw;
   left: 8.4%;
-  top: 46.5%;
+  top: 50.5%;
 }
 
 .podium-avatar-wrapper.first {
-  width: 7.2cqw;
-  height: 7.2cqw;
-  left: 23.0%;
-  top: 40.8%;
+  width: 8.2cqw;
+  height: 8.2cqw;
+  left: 22.4%;
+  top: 44.2%;
 }
 
 .podium-avatar-wrapper.third {
-  width: 6.0cqw;
-  height: 6.0cqw;
-  left: 38.6%;
-  top: 47.2%;
+  width: 6.8cqw;
+  height: 6.8cqw;
+  left: 38.2%;
+  top: 50.4%;
 }
 
 /* Responsive adjustment for mobile screen dimensions */
@@ -1764,4 +1765,683 @@ h4 {
     display: none;
     /* Hide absolute overlays on mobile stack layout */
   }
+}
+
+/* ── Avatar Image Render Fit ── */
+.podium-avatar-wrapper img.avatar-img,
+.ar-avatar img.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+  transform: scale(1.30);
+}
+
+/* ── Gender Selector Toggle Group ── */
+.gender-toggle-group {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.gender-btn {
+  flex: 1;
+  padding: 12px 18px;
+  border: 2px solid #eef0f3;
+  background: #ffffff;
+  border-radius: 12px;
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #64748b;
+  outline: none;
+}
+
+.gender-btn:hover {
+  border-color: #cbd5e1;
+  color: #475569;
+  transform: translateY(-1px);
+}
+
+.gender-btn.male.active {
+  background: #eaf4ff;
+  border-color: #3b82f6;
+  color: #1e40af;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+}
+
+.gender-btn.female.active {
+  background: #ffeaf0;
+  border-color: #ec4899;
+  color: #9d174d;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.12);
+}
+
+.gender-icon {
+  font-size: 1.15rem;
+}
+
+/* ──────────────────────────────────────────────
+   Mobile Responsiveness & Media Queries
+   ────────────────────────────────────────────── */
+
+.podium-mobile-row {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .page {
+    margin-top: 90px;
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 900px) {
+
+  /* ── Stats Bar ── */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Leaderboard Root ── */
+  .baitotrack-leaderboard-root {
+    height: auto;
+    aspect-ratio: auto;
+    background: #fff6f8;
+    /* Soft warm pink bg */
+    padding: 30px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .leaderboard-header-row {
+    position: relative;
+    left: auto;
+    top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .leaderboard-title {
+    font-size: 2.2rem;
+  }
+
+  .leaderboard-subtext {
+    font-size: 1.0rem;
+    margin-top: 4px;
+  }
+
+  .trophy-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* ── Mobile Podium Stands ── */
+  .podium-overlay,
+  .podium-avatar-wrapper {
+    display: none !important;
+  }
+
+  .podium-mobile-row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 10px;
+    width: 100%;
+    margin: 8px 0 16px;
+    box-sizing: border-box;
+  }
+
+  .podium-mobile-card {
+    flex: 1;
+    max-width: 105px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(255, 90, 128, 0.03);
+    border: 1.5px solid rgba(255, 90, 128, 0.05);
+  }
+
+  .podium-mobile-card.first {
+    max-width: 115px;
+    padding: 16px 6px;
+    border-color: #ffd1db;
+    box-shadow: 0 8px 24px rgba(255, 90, 128, 0.06);
+    background: linear-gradient(180deg, #ffffff 0%, #fffbfb 100%);
+  }
+
+  .podium-mobile-rank {
+    position: absolute;
+    top: -10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: #333333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    z-index: 5;
+  }
+
+  .podium-mobile-card.first .podium-mobile-rank {
+    background: #facc15;
+    color: #854d0e;
+    width: 26px;
+    height: 26px;
+    top: -12px;
+    font-size: 0.9rem;
+  }
+
+  .podium-mobile-card.second .podium-mobile-rank {
+    background: #cbd5e1;
+    color: #334155;
+  }
+
+  .podium-mobile-card.third .podium-mobile-rank {
+    background: #fed7aa;
+    color: #9a3412;
+  }
+
+  .podium-mobile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 8px;
+    border: 2px solid #f8fafc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .podium-mobile-card.first .podium-mobile-avatar {
+    width: 58px;
+    height: 58px;
+    border-color: #ffd1db;
+  }
+
+  .podium-mobile-card.third .podium-mobile-avatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  .podium-mobile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.30);
+  }
+
+  .podium-mobile-avatar svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .podium-mobile-name {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #333333;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .podium-mobile-card.first .podium-mobile-name {
+    font-size: 0.85rem;
+  }
+
+  .podium-mobile-value {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #333333;
+    margin-top: 2px;
+  }
+
+  .podium-mobile-card.first .podium-mobile-value {
+    font-size: 1.5rem;
+    color: #B46C2C;
+  }
+
+  .podium-mobile-card.third .podium-mobile-value {
+    color: #B46C2C;
+  }
+
+  .podium-mobile-label {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.7rem;
+    color: #666666;
+  }
+
+  .podium-mobile-card.first .podium-mobile-label,
+  .podium-mobile-card.third .podium-mobile-label {
+    color: #c7925e;
+  }
+
+  /* ── All Rankings Card Stack ── */
+  .all-rankings-card {
+    position: relative;
+    right: auto;
+    top: auto;
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    max-height: 400px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 16px 12px;
+    box-shadow: 0 8px 24px rgba(255, 90, 128, 0.02);
+    border: 1px solid rgba(255, 90, 128, 0.03);
+  }
+
+  /* ── Admin Dashboard ── */
+  .admin-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  /* ── Navigation Bar Mobile Wrapping ── */
+  .navbar {
+    height: auto;
+    padding: 12px 0;
+    position: fixed;
+  }
+
+  .navbar-content {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .navbar-links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .navbar-link {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+
+  .navbar-admin-btn {
+    padding: 6px 14px;
+    font-size: 0.82rem;
+  }
+
+  .page {
+    margin-top: 135px;
+    /* Prevent fixed dual-row mobile header from overlapping page content */
+  }
+
+  /* ── Hero Banner — Full-bleed phone_bg.png with overlaid content ── */
+  .hero-banner {
+    background: url('/phone_bg.png') no-repeat center bottom !important;
+    background-size: cover !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 36px 24px 0;
+    min-height: 520px;
+    text-align: center;
+    gap: 0;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 3;
+  }
+
+  .hero-tag {
+    margin-bottom: 16px;
+    font-size: 0.78rem;
+    padding: 6px 20px;
+  }
+
+  .hero-title {
+    font-size: 1.85rem;
+    line-height: 1.25;
+    margin-bottom: 10px;
+    color: #2d3748;
+  }
+
+  .hero-subtitle {
+    margin-bottom: 0;
+  }
+
+  .hero-subtitle-primary {
+    font-size: 0.88rem;
+    color: #555e6e;
+    line-height: 1.5;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    align-items: center;
+    margin-top: auto;
+    padding-bottom: 36px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    /* Gentle gradient fade so buttons are readable over characters */
+    background: linear-gradient(to top, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+    padding-top: 50px;
+  }
+
+  .hero-buttons .btn {
+    width: 72%;
+    max-width: 320px;
+    min-width: auto;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border-radius: 28px;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(255, 90, 128, 0.18);
+  }
+
+  .hero-buttons .btn-primary {
+    background: linear-gradient(135deg, #ff5a80 0%, #ff7eb3 100%);
+    color: #fff;
+    border: none;
+  }
+
+  .hero-buttons .btn-secondary {
+    background: #ffffff;
+    color: #2d3748;
+    border: 1.5px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
+
+  .hero-image-wrapper {
+    display: none !important;
+  }
+
+  .hero-image {
+    display: none !important;
+  }
+
+  /* ── Stats Bar — 2-column mobile grid matching reference ── */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Hide the 3rd and 4th stat cards on mobile (Today's Signups + Top Promoter) */
+  .stat-card:nth-child(n+3) {
+    display: none;
+  }
+
+  .stat-card {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  /* ── Admin Table Responsiveness ── */
+  .admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 600px) {
+
+  /* ── Upload Form ── */
+  .gender-toggle-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .gender-btn {
+    width: 100%;
+  }
+
+  .glass-card {
+    padding: 24px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    margin-top: 135px;
+    padding: 0 12px;
+  }
+
+  /* ── Stats Bar Single Column ── */
+  .stats-bar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  /* ── Mobile Podium Stands Font Tuning ── */
+  .podium-mobile-card {
+    max-width: 90px;
+  }
+
+  .podium-mobile-card.first {
+    max-width: 100px;
+  }
+
+  .podium-mobile-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .podium-mobile-card.first .podium-mobile-avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .podium-mobile-card.third .podium-mobile-avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .podium-mobile-value {
+    font-size: 1.1rem;
+  }
+
+  .podium-mobile-card.first .podium-mobile-value {
+    font-size: 1.35rem;
+  }
+
+  .podium-mobile-name {
+    font-size: 0.72rem;
+  }
+
+  .podium-mobile-label {
+    font-size: 0.65rem;
+  }
+
+  /* ── Admin Dashboard stats ── */
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Modern Modal & Overlay Styles ── */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.45); /* Elegant dark slate tint */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.modal-content {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  border-radius: 24px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #eef2f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-family: 'Quicksand', var(--font-main), sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.modal-close {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-table-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #eef2f6;
+}
+
+.modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.modal-table th {
+  background: #f8fafc;
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.modal-table td {
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: #334155;
+  border-bottom: 1px solid #eef2f6;
+  vertical-align: middle;
+}
+
+.modal-table tr:last-child td {
+  border-bottom: none;
+}
+
+.modal-table tr:hover td {
+  background: #f8fafc;
+}
+
+.error-alert {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Make stats card clickable */
+.admin-stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-light);
 }

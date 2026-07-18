@@ -18,11 +18,13 @@ const API_BASE = "/api";
 export async function uploadScreenshots(
   promoterName: string,
   icNumber: string,
+  gender: string,
   files: File[]
 ): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("promoter_name", promoterName);
   formData.append("ic_number", icNumber);
+  formData.append("gender", gender);
 
   for (const file of files) {
     formData.append("files", file);
@@ -116,6 +118,63 @@ export async function deleteSubmission(
     throw new Error(err.detail || "Delete failed");
   }
 
+  return res.json();
+}
+
+/**
+ * Delete multiple submissions by their IDs.
+ * Requires a valid admin token in the Authorization header.
+ */
+export async function deleteSubmissionsBatch(
+  token: string,
+  ids: number[]
+): Promise<{ success: boolean; message: string; errors?: string[] }> {
+  const res = await fetch(`${API_BASE}/admin/submissions/batch-delete`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ids }),
+  });
+
+  if (res.status === 401) {
+    sessionStorage.removeItem("admin_token");
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Batch delete failed" }));
+    throw new Error(err.detail || "Batch delete failed");
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetch all registered promoters for admin verification.
+ * Requires a valid admin token in the Authorization header.
+ */
+export async function fetchAdminPromoters(
+  token: string
+): Promise<Array<{
+  id: number;
+  name: string;
+  ic_number: string;
+  gender: string;
+  avatar?: string;
+  created_at: string;
+}>> {
+  const res = await fetch(`${API_BASE}/admin/promoters`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 401) {
+    sessionStorage.removeItem("admin_token");
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  if (!res.ok) throw new Error("Failed to fetch promoters list");
   return res.json();
 }
 

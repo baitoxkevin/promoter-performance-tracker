@@ -36,6 +36,7 @@ class LeaderboardEntry(BaseModel):
     promoter_name: str
     ic_number_masked: str   # Only last 4 digits shown for privacy
     valid_count: int
+    avatar: Optional[str] = None
 
 
 class LeaderboardResponse(BaseModel):
@@ -93,3 +94,8 @@ class AdminStatsResponse(BaseModel):
     total_duplicate: int
     total_ocr_failed: int
     submissions: List[AdminSubmission]
+
+
+class BatchDeleteRequest(BaseModel):
+    """Request payload to delete multiple submissions at once."""
+    ids: List[int]

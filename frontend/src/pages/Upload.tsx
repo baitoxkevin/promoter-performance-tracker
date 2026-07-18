@@ -21,6 +21,7 @@ export default function Upload() {
   // Promoter info (persisted in LocalStorage)
   const [name, setName] = useState("");
   const [icNumber, setIcNumber] = useState("");
+  const [gender, setGender] = useState("female");
   const [remembered, setRemembered] = useState(false);
 
   // File state
@@ -37,6 +38,9 @@ export default function Upload() {
     if (saved) {
       setName(saved.name);
       setIcNumber(saved.ic_number);
+      if (saved.gender) {
+        setGender(saved.gender);
+      }
       setRemembered(true);
     }
   }, []);
@@ -56,6 +60,7 @@ export default function Upload() {
     clearPromoterInfo();
     setName("");
     setIcNumber("");
+    setGender("female");
     setRemembered(false);
   };
 
@@ -77,7 +82,7 @@ export default function Upload() {
 
     try {
       // Save promoter info for future sessions
-      savePromoterInfo({ name: name.trim(), ic_number: icNumber.trim() });
+      savePromoterInfo({ name: name.trim(), ic_number: icNumber.trim(), gender });
       setRemembered(true);
 
       // Compress images before upload
@@ -87,6 +92,7 @@ export default function Upload() {
       const response = await uploadScreenshots(
         name.trim(),
         icNumber.trim(),
+        gender,
         compressed
       );
 
@@ -163,6 +169,32 @@ export default function Upload() {
             />
             <p className="form-hint">
               Your IC number is used to identify you uniquely. It won't be shown publicly.
+            </p>
+          </div>
+
+          {/* Gender Selector */}
+          <div className="form-group">
+            <label className="form-label">
+              Avatar Gender / 形象性别 *
+            </label>
+            <div className="gender-toggle-group">
+              <button
+                type="button"
+                className={`gender-btn male ${gender === "male" ? "active" : ""}`}
+                onClick={() => setGender("male")}
+              >
+                Male / 男生
+              </button>
+              <button
+                type="button"
+                className={`gender-btn female ${gender === "female" ? "active" : ""}`}
+                onClick={() => setGender("female")}
+              >
+                Female / 女生
+              </button>
+            </div>
+            <p className="form-hint">
+              Select your gender to randomly assign a cute matching chibi avatar on the leaderboard.
             </p>
           </div>
 

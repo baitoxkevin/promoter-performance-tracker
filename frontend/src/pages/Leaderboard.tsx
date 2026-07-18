@@ -84,8 +84,33 @@ export default function Leaderboard() {
         rank: index + 1,
         promoter_name: item.promoter_name,
         valid_count: item.valid_count,
+        avatar: item.avatar,
       }))
     : [];
+
+  // Helper to render beautiful Q-version mascot IP avatars or custom images
+  const renderAvatar = (avatar: string | undefined, rank: number) => {
+    if (avatar) {
+      if (avatar.includes("avatar_f")) {
+        return rank % 2 === 1 ? <JessicaAvatar /> : <SamanthaAvatar />;
+      }
+      if (avatar.includes("avatar_m")) {
+        return <AlexAvatar />;
+      }
+      if (avatar.startsWith("http") || avatar.startsWith("/") || avatar.startsWith("data:")) {
+        return <img src={avatar} alt="Avatar" className="avatar-img" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />;
+      }
+    }
+
+    if (rank === 1) return <JessicaAvatar />;
+    if (rank === 2) return <AlexAvatar />;
+    if (rank === 3) return <SamanthaAvatar />;
+
+    const cycle = rank % 3;
+    if (cycle === 1) return <JessicaAvatar />;
+    if (cycle === 2) return <AlexAvatar />;
+    return <SamanthaAvatar />;
+  };
 
   const topPromoterName = entries[0]?.promoter_name || "None";
   const topPromoterCount = entries[0]?.valid_count || 0;
@@ -200,31 +225,19 @@ export default function Leaderboard() {
             {/* ── Podiums Stand Avatar Placeholders (Conditional based on real database records) ── */}
             {entries[1] && (
               <div className="podium-avatar-wrapper second">
-                <svg viewBox="0 0 100 100" className="avatar-svg">
-                  <circle cx="50" cy="50" r="48" fill="#f7f7f8" stroke="#eee" strokeWidth="1.5"/>
-                  <circle cx="50" cy="52" r="20" fill="#e8e8ec"/>
-                  <circle cx="50" cy="38" r="12" fill="#e8e8ec"/>
-                </svg>
+                {renderAvatar(entries[1].avatar, 2)}
               </div>
             )}
 
             {entries[0] && (
               <div className="podium-avatar-wrapper first">
-                <svg viewBox="0 0 100 100" className="avatar-svg">
-                  <circle cx="50" cy="50" r="48" fill="#f7f7f8" stroke="#eee" strokeWidth="1.5"/>
-                  <circle cx="50" cy="52" r="20" fill="#e8e8ec"/>
-                  <circle cx="50" cy="38" r="12" fill="#e8e8ec"/>
-                </svg>
+                {renderAvatar(entries[0].avatar, 1)}
               </div>
             )}
 
             {entries[2] && (
               <div className="podium-avatar-wrapper third">
-                <svg viewBox="0 0 100 100" className="avatar-svg">
-                  <circle cx="50" cy="50" r="48" fill="#f7f7f8" stroke="#eee" strokeWidth="1.5"/>
-                  <circle cx="50" cy="52" r="20" fill="#e8e8ec"/>
-                  <circle cx="50" cy="38" r="12" fill="#e8e8ec"/>
-                </svg>
+                {renderAvatar(entries[2].avatar, 3)}
               </div>
             )}
 
@@ -253,6 +266,48 @@ export default function Leaderboard() {
               </div>
             )}
 
+            {/* ── Mobile-only Podium Stands (Hidden on desktop via CSS display:none) ── */}
+            <div className="podium-mobile-row">
+              {/* 2nd Place */}
+              {entries[1] && (
+                <div className="podium-mobile-card second">
+                  <div className="podium-mobile-rank">2</div>
+                  <div className="podium-mobile-avatar">
+                    {renderAvatar(entries[1].avatar, 2)}
+                  </div>
+                  <div className="podium-mobile-name">{entries[1].promoter_name}</div>
+                  <div className="podium-mobile-value">{entries[1].valid_count}</div>
+                  <div className="podium-mobile-label">signups</div>
+                </div>
+              )}
+
+              {/* 1st Place */}
+              {entries[0] && (
+                <div className="podium-mobile-card first">
+                  <div className="podium-mobile-rank">1</div>
+                  <div className="podium-mobile-avatar">
+                    {renderAvatar(entries[0].avatar, 1)}
+                  </div>
+                  <div className="podium-mobile-name">{entries[0].promoter_name}</div>
+                  <div className="podium-mobile-value">{entries[0].valid_count}</div>
+                  <div className="podium-mobile-label">signups</div>
+                </div>
+              )}
+
+              {/* 3rd Place */}
+              {entries[2] && (
+                <div className="podium-mobile-card third">
+                  <div className="podium-mobile-rank">3</div>
+                  <div className="podium-mobile-avatar">
+                    {renderAvatar(entries[2].avatar, 3)}
+                  </div>
+                  <div className="podium-mobile-name">{entries[2].promoter_name}</div>
+                  <div className="podium-mobile-value">{entries[2].valid_count}</div>
+                  <div className="podium-mobile-label">signups</div>
+                </div>
+              )}
+            </div>
+
             {/* ── All Rankings Card Overlay ── */}
             <div className="all-rankings-card">
               {/* Horizontal evenly split headers */}
@@ -276,12 +331,7 @@ export default function Leaderboard() {
                       <div className="ar-col-name">
                         <div className="ar-profile">
                           <div className="ar-avatar">
-                            {/* Placeholder white circular avatar */}
-                            <svg viewBox="0 0 100 100" className="avatar-svg">
-                              <circle cx="50" cy="50" r="48" fill="#f7f7f8" stroke="#eee" strokeWidth="1.5"/>
-                              <circle cx="50" cy="52" r="20" fill="#e8e8ec"/>
-                              <circle cx="50" cy="38" r="12" fill="#e8e8ec"/>
-                            </svg>
+                            {renderAvatar(item.avatar, item.rank)}
                           </div>
                           <span className="ar-username">{item.promoter_name}</span>
                         </div>

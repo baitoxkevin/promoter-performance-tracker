@@ -25,6 +25,7 @@ from models import (
     AdminLoginResponse,
     AdminStatsResponse,
     AdminSubmission,
+    BatchDeleteRequest,
 )
 from config import ADMIN_PIN, ADMIN_TOKEN_EXPIRY
 
@@ -201,8 +202,20 @@ async def delete_submission(
     try:
         from config import UPLOAD_DIR
         file_path = UPLOAD_DIR / submission.image_path
+        
+        # Release any open Python file descriptors
+        import gc
+        gc.collect()
+        
         if file_path.exists() and file_path.is_file():
-            file_path.unlink()
+            try:
+                file_path.unlink()
+            except PermissionError:
+                # Fallback retry for Windows file locks
+                import time
+                time.sleep(0.1)
+                gc.collect()
+                file_path.unlink()
     except Exception as e:
         print(f"[Admin] Failed to delete image file: {str(e)}")
 
@@ -211,4 +224,79 @@ async def delete_submission(
     db.commit()
 
     return {"success": True, "message": "Submission deleted successfully."}
+
+
+@router.post("/admin/submissions/batch-delete")
+async def delete_submissions_batch(
+    request: BatchDeleteRequest,
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_token),
+):
+    """
+    Delete multiple submissions by ID.
+    Releases username constraints from valid_usernames and deletes files on disk.
+    """
+    deleted_count = 0
+    errors = []
+    
+    # Fetch all submissions to delete
+    submissions = db.query(Submission).filter(Submission.id.in_(request.ids)).all()
+    
+    for sub in submissions:
+        # Delete from valid_usernames
+        db.query(ValidUsername).filter(ValidUsername.submission_id == sub.id).delete()
+        
+        # Delete file on disk
+        try:
+            from config import UPLOAD_DIR
+            file_path = UPLOAD_DIR / sub.image_path
+            
+            import gc
+            gc.collect()
+            
+            if file_path.exists() and file_path.is_file():
+                try:
+                    file_path.unlink()
+                except PermissionError:
+                    import time
+                    time.sleep(0.1)
+                    gc.collect()
+                    file_path.unlink()
+        except Exception as e:
+            err_msg = f"Failed to delete file for submission {sub.id}: {str(e)}"
+            print(f"[Admin] {err_msg}")
+            errors.append(err_msg)
+            
+        # Delete record
+        db.delete(sub)
+        deleted_count += 1
+        
+    db.commit()
+    return {
+        "success": True, 
+        "message": f"Successfully deleted {deleted_count} submissions.",
+        "errors": errors
+    }
+
+
+@router.get("/admin/promoters")
+async def get_admin_promoters(
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_token),
+):
+    """
+    Retrieve all promoters, including their name, IC number, and gender.
+    """
+    promoters = db.query(Promoter).order_by(Promoter.name.asc()).all()
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "ic_number": p.ic_number,
+            "gender": p.gender or "unknown",
+            "avatar": p.avatar,
+            "created_at": p.created_at.isoformat() if p.created_at else "",
+        }
+        for p in promoters
+    ]
 
