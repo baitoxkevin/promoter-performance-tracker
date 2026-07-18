@@ -91,12 +91,6 @@ export default function Leaderboard() {
   // Helper to render beautiful Q-version mascot IP avatars or custom images
   const renderAvatar = (avatar: string | undefined, rank: number) => {
     if (avatar) {
-      if (avatar.includes("avatar_f")) {
-        return rank % 2 === 1 ? <JessicaAvatar /> : <SamanthaAvatar />;
-      }
-      if (avatar.includes("avatar_m")) {
-        return <AlexAvatar />;
-      }
       if (avatar.startsWith("http") || avatar.startsWith("/") || avatar.startsWith("data:")) {
         return <img src={avatar} alt="Avatar" className="avatar-img" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />;
       }
