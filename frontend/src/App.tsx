@@ -24,6 +24,8 @@ export default function App() {
           <Route path="/upload" element={<Upload />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          {/* Wildcard fallback to Leaderboard for unmatched paths (e.g. index.html) */}
+          <Route path="*" element={<Leaderboard />} />
         </Routes>
       </div>
     </>
