@@ -1,0 +1,4 @@
+[build]
+  # Tell Netlify: the build is already done, just publish dist/
+  command = "echo 'Pre-built — skipping build'"
+  publish = "dist"
