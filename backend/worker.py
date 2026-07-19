@@ -22,12 +22,12 @@ from rapidfuzz import fuzz, process
 from database import SessionLocal, Submission, ValidUsername, Promoter
 from ocr_service import process_image
 from utils import get_storage_path
-from config import UPLOAD_DIR
+from config import UPLOAD_DIR, OCR_WORKERS
 
 # ──────────────────────────────────────────────
 # Parallelism & Thread Safety
 # ──────────────────────────────────────────────
-_MAX_WORKERS = 4
+_MAX_WORKERS = OCR_WORKERS
 _executor: Optional[ThreadPoolExecutor] = None
 _db_lock = threading.Lock()  # Serializes SQLite writes across threads
 

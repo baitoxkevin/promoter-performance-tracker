@@ -4,11 +4,11 @@
  */
 
 /** Maximum width/height for compressed images (pixels) */
-const MAX_DIMENSION = 640;
+const MAX_DIMENSION = 480;
 /** JPEG quality for compression (0.0 to 1.0) */
-const QUALITY = 0.8;
-/** Maximum file size after compression (bytes) — 50KB */
-const MAX_SIZE_BYTES = 50 * 1024;
+const QUALITY = 0.6;
+/** Maximum file size after compression (bytes) — 30KB */
+const MAX_SIZE_BYTES = 30 * 1024;
 
 /**
  * Compress an image file using canvas.
@@ -53,26 +53,34 @@ export async function compressImage(file: File): Promise<File> {
 
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Export as JPEG blob
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error("Canvas compression failed"));
-            return;
-          }
+      // Export as JPEG blob with progressive quality reduction
+      const tryCompress = (quality: number) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Canvas compression failed"));
+              return;
+            }
 
-          // Create a new File with the compressed data
-          const compressedFile = new File(
-            [blob],
-            file.name.replace(/\.[^.]+$/, ".jpg"),
-            { type: "image/jpeg", lastModified: Date.now() }
-          );
+            // If still too large and quality can be reduced further, retry
+            if (blob.size > MAX_SIZE_BYTES && quality > 0.3) {
+              tryCompress(quality - 0.2);
+              return;
+            }
 
-          resolve(compressedFile);
-        },
-        "image/jpeg",
-        QUALITY
-      );
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.[^.]+$/, ".jpg"),
+              { type: "image/jpeg", lastModified: Date.now() }
+            );
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+
+      tryCompress(QUALITY);
     };
 
     img.onerror = () => {

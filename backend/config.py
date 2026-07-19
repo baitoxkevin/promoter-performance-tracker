@@ -47,3 +47,15 @@ ADMIN_TOKEN_EXPIRY = 86400
 # ──────────────────────────────────────────────
 MAX_FILE_SIZE_MB = 5
 MAX_FILES_PER_UPLOAD = 20
+
+# ──────────────────────────────────────────────
+# OCR Performance Tuning
+# ──────────────────────────────────────────────
+# Set CLOUD_DEPLOY=true on Render/Railway for slower CPU optimizations
+CLOUD_DEPLOY = os.getenv("CLOUD_DEPLOY", "false").lower() == "true"
+# Max dimension for OCR preprocess (640 local, 480 cloud)
+OCR_MAX_DIMENSION = 480 if CLOUD_DEPLOY else 640
+# Skip deskew entirely on cloud (saves 200-500ms on slow CPUs)
+OCR_SKIP_DESKEW = CLOUD_DEPLOY
+# Number of parallel OCR workers (2 on cloud, 4 local)
+OCR_WORKERS = 2 if CLOUD_DEPLOY else 4

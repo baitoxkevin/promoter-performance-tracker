@@ -11,7 +11,7 @@ from typing import Optional, Tuple, Dict, Any, List
 from openai import OpenAI
 from rapidocr_onnxruntime import RapidOCR
 
-from config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
+from config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL, OCR_MAX_DIMENSION, OCR_SKIP_DESKEW
 
 # Initialize DeepSeek Client only if API key is provided
 client: Optional[OpenAI] = None
@@ -61,8 +61,8 @@ def preprocess_image(image_path: str) -> Tuple[np.ndarray, float]:
         
     h, w = img.shape[:2]
     
-    # 1. Resize to max side 640px (helps speed up ONNX OCR model on slow CPUs)
-    max_side = 640
+    # 1. Resize to configured max side (480 cloud, 640 local)
+    max_side = OCR_MAX_DIMENSION
     if max(h, w) > max_side:
         if w > h:
             new_w = max_side
@@ -80,33 +80,31 @@ def preprocess_image(image_path: str) -> Tuple[np.ndarray, float]:
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     contrast = clahe.apply(gray)
 
-    # 4. Deskewing (optimized: downsample 4x before angle detection)
-    # Downsample to ~160px max dimension for fast angle estimation
-    ds_factor = 4
-    small = cv2.resize(contrast, (w // ds_factor, h // ds_factor), interpolation=cv2.INTER_AREA)
-    coords = np.column_stack(np.where(small < 100))
+    # 4. Deskewing (skipped on cloud for speed)
     angle = 0.0
-    if len(coords) > 0:
-        # minAreaRect returns angle in range [-90, 0)
-        rect = cv2.minAreaRect(coords)
-        angle = rect[-1]
-        if angle < -45:
-            angle = -(90 + angle)
-        else:
-            angle = -angle
+    if not OCR_SKIP_DESKEW:
+        # Downsample 4x before angle detection for speed
+        ds_factor = 4
+        small = cv2.resize(contrast, (w // ds_factor, h // ds_factor), interpolation=cv2.INTER_AREA)
+        coords = np.column_stack(np.where(small < 100))
+        if len(coords) > 0:
+            rect = cv2.minAreaRect(coords)
+            angle = rect[-1]
+            if angle < -45:
+                angle = -(90 + angle)
+            else:
+                angle = -angle
+            if 0.5 <= abs(angle) <= 15:
+                center = (w // 2, h // 2)
+                M = cv2.getRotationMatrix2D(center, angle, 1.0)
+                contrast = cv2.warpAffine(
+                    contrast, M, (w, h),
+                    flags=cv2.INTER_CUBIC,
+                    borderMode=cv2.BORDER_REPLICATE
+                )
 
-        # Only rotate if the angle is significant but within bounds of a snapshot tilt (0.5 to 15 deg)
-        if 0.5 <= abs(angle) <= 15:
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, angle, 1.0)
-            contrast = cv2.warpAffine(
-                contrast, M, (w, h),
-                flags=cv2.INTER_CUBIC,
-                borderMode=cv2.BORDER_REPLICATE
-            )
-            
     preprocess_time = time.time() - start_time
-    print(f"[OCR] Preprocessed image in {preprocess_time:.3f}s. Deskew angle: {angle:.2f}°")
+    print(f"[OCR] Preprocessed image in {preprocess_time:.3f}s. Deskew: {'skipped' if OCR_SKIP_DESKEW else f'{angle:.2f}°'}")
     return contrast, preprocess_time
 
 def run_rapid_ocr(processed_img: np.ndarray) -> Tuple[List[Dict[str, Any]], float]:
