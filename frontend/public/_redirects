@@ -1,3 +1,5 @@
-/api/*      https://promoter-performance-tracker.onrender.com/api/:splat  200
-/uploads/*  https://promoter-performance-tracker.onrender.com/uploads/:splat  200
-/*          /index.html                                                   200
+# Proxy API calls to backend server
+# Replace YOUR_BACKEND_URL with your Oracle VM public IP (e.g., http://123.456.789.0:8000)
+/api/*      http://YOUR_BACKEND_URL/api/:splat  200
+/uploads/*  http://YOUR_BACKEND_URL/uploads/:splat  200
+/*          /index.html                           200
