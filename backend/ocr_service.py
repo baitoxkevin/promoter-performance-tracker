@@ -59,8 +59,8 @@ def preprocess_image(image_path: str) -> Tuple[np.ndarray, float]:
         
     h, w = img.shape[:2]
     
-    # 1. Resize to max side 1600px
-    max_side = 1600
+    # 1. Resize to max side 800px (helps speed up ONNX OCR model on slow CPUs)
+    max_side = 800
     if max(h, w) > max_side:
         if w > h:
             new_w = max_side
