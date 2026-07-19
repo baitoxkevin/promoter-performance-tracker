@@ -1,3 +1,3 @@
-/api/*      https://confirmed-transmission-pathology-joel.trycloudflare.com/api/:splat  200
-/uploads/*  https://confirmed-transmission-pathology-joel.trycloudflare.com/uploads/:splat  200
-/*          /index.html                                                                   200
+/api/*      https://incidents-makes-chester-furniture.trycloudflare.com/api/:splat  200
+/uploads/*  https://incidents-makes-chester-furniture.trycloudflare.com/uploads/:splat  200
+/*          /index.html                                                                200
