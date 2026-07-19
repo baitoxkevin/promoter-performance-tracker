@@ -1,0 +1,30 @@
+# Hugging Face Spaces Dockerfile
+# Uses PORT env var (HF injects this, default 7860)
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for OpenCV/RapidOCR
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libxcb1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy from backend/ directory
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/ .
+
+# Create uploads directory
+RUN mkdir -p uploads
+
+# HF Spaces injects PORT env var
+ENV PORT=7860
+ENV CLOUD_DEPLOY=true
+
+EXPOSE 7860
+
+# Listen on the PORT that HF Spaces assigns
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}

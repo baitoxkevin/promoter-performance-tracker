@@ -1,3 +1,15 @@
-/api/*      https://colony-dna-partner-weekend.trycloudflare.com/api/:splat  200
-/uploads/*  https://colony-dna-partner-weekend.trycloudflare.com/uploads/:splat  200
-/*          /index.html                                                          200
+# ================================================================
+# Backend URL Configuration
+# ================================================================
+# PRIMARY: Hugging Face Spaces (free, always-on, no credit card)
+#   Replace YOUR_SPACE_URL with your HF Space URL after setup
+#   Example: https://yourname-promoter-tracker.hf.space
+# ================================================================
+# FALLBACK/FAST: Local PC via Cloudflare Tunnel (when PC is on)
+#   Replace the URLs below with your current trycloudflare.com URL
+#   Run: cloudflared tunnel --url http://localhost:8000
+# ================================================================
+
+/api/*      https://YOUR_SPACE_URL.hf.space/api/:splat  200
+/uploads/*  https://YOUR_SPACE_URL.hf.space/uploads/:splat  200
+/*          /index.html                                    200
