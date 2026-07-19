@@ -36,6 +36,18 @@ app = FastAPI(
     version="1.0.0",
 )
 
+
+@app.on_event("startup")
+def preload_ocr_engine():
+    """Pre-warm the OCR engine on startup in a background thread so it doesn't block the health check."""
+    try:
+        from ocr_service import get_ocr_engine
+        import threading
+        print("[Startup] Triggering eager loading of RapidOCR engine in background...")
+        threading.Thread(target=get_ocr_engine, daemon=True).start()
+    except Exception as e:
+        print(f"[Startup] Failed to eager load OCR engine: {e}")
+
 # ──────────────────────────────────────────────
 # CORS — Allow frontend dev server to call API
 # In production, restrict allow_origins to your domain.
