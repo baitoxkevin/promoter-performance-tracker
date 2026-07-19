@@ -11,11 +11,14 @@ from rapidocr_onnxruntime import RapidOCR
 
 from config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
 
-# Initialize DeepSeek Client
-client = OpenAI(
-    api_key=DEEPSEEK_API_KEY,
-    base_url=DEEPSEEK_BASE_URL,
-)
+# Initialize DeepSeek Client only if API key is provided
+client: Optional[OpenAI] = None
+if DEEPSEEK_API_KEY.strip():
+    client = OpenAI(
+        api_key=DEEPSEEK_API_KEY,
+        base_url=DEEPSEEK_BASE_URL,
+    )
+
 
 # Lazy-loaded singleton RapidOCR reader
 _ocr_engine: Optional[RapidOCR] = None
@@ -140,6 +143,10 @@ def extract_username_with_llm(ocr_text: str) -> Optional[str]:
         "5. Output ONLY the JSON array. Do not wrap in markdown fences and do not explain.\n\n"
         f"Raw OCR text:\n---\n{ocr_text}\n---"
     )
+
+    if not client:
+        print("[OCR-LLM] DeepSeek client is not initialized (missing API key). Bypassing LLM fallback.")
+        return None
 
     try:
         response = client.chat.completions.create(
