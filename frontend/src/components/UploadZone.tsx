@@ -15,19 +15,31 @@ interface Props {
   files: File[];
   onFilesSelected: (files: File[]) => void;
   onRemoveFile: (index: number) => void;
+  maxFiles?: number;
 }
 
-export default function UploadZone({ files, onFilesSelected, onRemoveFile }: Props) {
+export default function UploadZone({ files, onFilesSelected, onRemoveFile, maxFiles = 20 }: Props) {
   const [dragOver, setDragOver] = useState(false);
+  const [limitWarning, setLimitWarning] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Filter to only accept image files
+  const remaining = maxFiles - files.length;
+
+  // Filter to only accept image files, enforce max limit
   const filterImages = useCallback((fileList: FileList | null): File[] => {
     if (!fileList) return [];
-    return Array.from(fileList).filter((f) =>
+    const images = Array.from(fileList).filter((f) =>
       f.type.startsWith("image/")
     );
-  }, []);
+    if (files.length + images.length > maxFiles) {
+      const allowed = images.slice(0, remaining);
+      setLimitWarning(`Maximum ${maxFiles} files per upload. ${images.length - allowed.length} file(s) were not added.`);
+      setTimeout(() => setLimitWarning(""), 4000);
+      return allowed;
+    }
+    setLimitWarning("");
+    return images;
+  }, [files.length, maxFiles, remaining]);
 
   // Handle click to open file picker
   const handleClick = () => {
@@ -78,11 +90,19 @@ export default function UploadZone({ files, onFilesSelected, onRemoveFile }: Pro
         <div className="upload-zone-text">
           {dragOver
             ? "Drop images here..."
+            : remaining <= 0
+            ? "Maximum files reached"
             : "Tap to select or drag & drop screenshots"}
         </div>
         <div className="upload-zone-hint">
-          Supports JPEG, PNG, WebP • Max 5MB per file
+          Supports JPEG, PNG, WebP • Max 5MB per file • Up to {maxFiles} files
         </div>
+
+        {limitWarning && (
+          <div className="upload-zone-warning">
+            ⚠️ {limitWarning}
+          </div>
+        )}
 
         <input
           ref={inputRef}
@@ -91,6 +111,7 @@ export default function UploadZone({ files, onFilesSelected, onRemoveFile }: Pro
           accept="image/*"
           multiple
           onChange={handleChange}
+          disabled={remaining <= 0}
         />
       </div>
 

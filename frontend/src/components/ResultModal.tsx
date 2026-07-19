@@ -20,6 +20,7 @@ const STATUS_CONFIG = {
   valid: { icon: "✅", color: "var(--success)" },
   duplicate: { icon: "❌", color: "var(--danger)" },
   ocr_failed: { icon: "⚠️", color: "var(--warning)" },
+  pending: { icon: "⏳", color: "var(--accent-blue)" },
 } as const;
 
 export default function ResultModal({ result, onClose }: Props) {

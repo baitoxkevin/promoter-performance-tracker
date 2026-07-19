@@ -4,7 +4,8 @@
  */
 
 import type {
-  UploadResponse,
+  BatchUploadResponse,
+  BatchStatusResponse,
   LeaderboardResponse,
   AdminLoginResponse,
   AdminStatsResponse,
@@ -20,7 +21,7 @@ export async function uploadScreenshots(
   icNumber: string,
   gender: string,
   files: File[]
-): Promise<UploadResponse> {
+): Promise<BatchUploadResponse> {
   const formData = new FormData();
   formData.append("promoter_name", promoterName);
   formData.append("ic_number", icNumber);
@@ -38,6 +39,21 @@ export async function uploadScreenshots(
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "Upload failed" }));
     throw new Error(error.detail || "Upload failed");
+  }
+
+  return res.json();
+}
+
+/**
+ * Poll the processing status of a batch upload.
+ */
+export async function fetchBatchStatus(
+  batchId: string
+): Promise<BatchStatusResponse> {
+  const res = await fetch(`${API_BASE}/batch/${batchId}/status`);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch batch status");
   }
 
   return res.json();

@@ -63,9 +63,10 @@ class Submission(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     promoter_id = Column(Integer, ForeignKey("promoters.id"), nullable=False)
-    extracted_username = Column(String(100), nullable=True)  # NULL if OCR failed
+    batch_id = Column(String(36), nullable=True, index=True)  # UUID grouping uploads from same submission
+    extracted_username = Column(String(100), nullable=True)  # NULL if OCR failed or pending
     image_path = Column(String(500), nullable=False)         # Relative to uploads/
-    status = Column(String(20), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
     ocr_raw_text = Column(Text, nullable=True)               # Full OCR output for debugging
     
     # Performance logging columns
@@ -83,11 +84,12 @@ class Submission(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('valid', 'duplicate', 'ocr_failed')",
+            "status IN ('valid', 'duplicate', 'ocr_failed', 'pending')",
             name="check_submission_status"
         ),
         Index("idx_submissions_promoter", "promoter_id"),
         Index("idx_submissions_status", "status"),
+        Index("idx_submissions_batch", "batch_id"),
     )
 
     # Relationships

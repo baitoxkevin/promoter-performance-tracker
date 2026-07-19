@@ -46,4 +46,4 @@ ADMIN_TOKEN_EXPIRY = 86400
 # Upload Constraints
 # ──────────────────────────────────────────────
 MAX_FILE_SIZE_MB = 5
-MAX_FILES_PER_UPLOAD = 10
+MAX_FILES_PER_UPLOAD = 20

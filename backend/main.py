@@ -15,11 +15,17 @@ from fastapi.staticfiles import StaticFiles
 from database import init_db
 from routes import upload, leaderboard, admin
 from config import UPLOAD_DIR
+from worker import start_worker
 
 # ──────────────────────────────────────────────
 # Initialize database tables on startup
 # ──────────────────────────────────────────────
 init_db()
+
+# ──────────────────────────────────────────────
+# Start background OCR worker thread
+# ──────────────────────────────────────────────
+start_worker()
 
 # ──────────────────────────────────────────────
 # Create FastAPI application

@@ -14,7 +14,7 @@ from typing import Optional, List
 class SubmissionResult(BaseModel):
     """Result for a single uploaded file after OCR processing."""
     filename: str
-    status: str                           # "valid" | "duplicate" | "ocr_failed"
+    status: str                           # "valid" | "duplicate" | "ocr_failed" | "pending"
     extracted_username: Optional[str] = None
     message: str
 
@@ -24,6 +24,24 @@ class UploadResponse(BaseModel):
     success: bool
     results: List[SubmissionResult]
     promoter_name: str
+
+
+class BatchUploadResponse(BaseModel):
+    """Immediate response after async batch upload (files queued for processing)."""
+    success: bool
+    batch_id: str
+    total_files: int
+    message: str
+    promoter_name: str
+
+
+class BatchStatusResponse(BaseModel):
+    """Real-time status of a batch upload's OCR processing progress."""
+    batch_id: str
+    total: int
+    completed: int
+    pending: int
+    results: List[SubmissionResult]
 
 
 # ──────────────────────────────────────────────

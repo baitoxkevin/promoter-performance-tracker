@@ -1,268 +1,57 @@
 """
-Upload Route — The core pipeline that handles:
-  1. Receiving uploaded screenshots + promoter info
-  2. Upserting the promoter record
-  3. Running OCR on each image
-  4. Checking for duplicate usernames (DB UNIQUE constraint)
-  5. Routing images to the correct storage folder
-  6. Returning per-file results to the frontend
+Upload Route — Async "receive first, process later" architecture.
+
+  1. Receives uploaded screenshots + promoter info
+  2. Upserts the promoter record
+  3. Saves images to disk & creates "pending" DB records
+  4. Enqueues each submission for background OCR processing
+  5. Returns immediately with a batch_id for status polling
+
+Batch status endpoint allows frontend to poll processing progress.
 """
 
 import os
+import uuid
 import time
-import shutil
-import tempfile
 import random
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from rapidfuzz import fuzz, process
 
-from database import get_db, Promoter, Submission, ValidUsername
-from models import UploadResponse, SubmissionResult
-from ocr_service import process_image
-from utils import get_storage_path, generate_filename, save_uploaded_image
+from database import get_db, Promoter, Submission
+from models import BatchUploadResponse, BatchStatusResponse, SubmissionResult
+from worker import enqueue_ocr_task
+from utils import get_storage_path, generate_filename
 from config import MAX_FILE_SIZE_MB, MAX_FILES_PER_UPLOAD, UPLOAD_DIR
 
 router = APIRouter()
 
 
-async def _process_single_file(
-    upload_file: UploadFile,
-    promoter: Promoter,
-    db: Session,
-) -> SubmissionResult:
-    """
-    Process a single uploaded screenshot through the full high-speed OCR pipeline.
-    Includes OpenCV preprocessing, RapidOCR, Rule Engine, and fuzzy duplicate checking.
-    """
-    total_start = time.time()
-
-    # ── Step 1: Read file contents and validate size ──
-    contents = await upload_file.read()
-    file_size_mb = len(contents) / (1024 * 1024)
-
-    if file_size_mb > MAX_FILE_SIZE_MB:
-        return SubmissionResult(
-            filename=upload_file.filename or "unknown",
-            status="ocr_failed",
-            message=f"File too large ({file_size_mb:.1f}MB). Max is {MAX_FILE_SIZE_MB}MB.",
-        )
-
-    # ── Step 2: Save to temporary file for OCR processing ──
-    temp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-            tmp.write(contents)
-            temp_path = Path(tmp.name)
-
-        # ── Step 3: Run OCR and extract username using the new pipeline ──
-        ocr_result = process_image(str(temp_path))
-        username = ocr_result["extracted_username"]
-        raw_text = ocr_result["ocr_raw_text"]
-        ocr_time = ocr_result["ocr_time"]
-        rule_time = ocr_result["rule_time"]
-        ocr_confidence = ocr_result["ocr_confidence"]
-        candidate_score = ocr_result["candidate_score"]
-        llm_used = ocr_result["llm_used"]
-
-        if username is None:
-            # OCR failed or no username detected → route to duplicate/failed folder
-            filename = generate_filename(None)
-            dest_folder = get_storage_path(promoter.name, is_duplicate=True)
-            relative_path = save_uploaded_image(temp_path, dest_folder, filename)
-
-            total_time = time.time() - total_start
-            submission = Submission(
-                promoter_id=promoter.id,
-                extracted_username=None,
-                image_path=relative_path,
-                status="ocr_failed",
-                ocr_raw_text=raw_text,
-                ocr_time=ocr_time,
-                rule_time=rule_time,
-                matching_time=0.0,
-                total_time=total_time,
-                ocr_confidence=ocr_confidence,
-                candidate_score=candidate_score,
-                matched_name=None,
-                similarity=0.0,
-                llm_used=llm_used,
-            )
-            db.add(submission)
-            db.commit()
-
-            return SubmissionResult(
-                filename=upload_file.filename or "unknown",
-                status="ocr_failed",
-                extracted_username=None,
-                message="Could not detect username. Please retake a clearer screenshot.",
-            )
-
-        # ── Step 4: Fuzzy Match Duplicate Check using RapidFuzz ──
-        match_start = time.time()
-        
-        # Retrieve all globally validated usernames for fuzzy comparison
-        all_valid_entries = db.query(ValidUsername).all()
-        
-        best_match_name = None
-        best_score = 0.0
-        
-        if all_valid_entries:
-            usernames = [entry.username for entry in all_valid_entries]
-            # Use token_sort_ratio to catch permutations/typos (e.g. LOO CHUN OIAN vs LOO CHUN QIAN)
-            fuzz_res = process.extractOne(
-                username, 
-                usernames, 
-                scorer=fuzz.token_sort_ratio
-            )
-            if fuzz_res:
-                best_match_name, score_val, _ = fuzz_res
-                # Also compute set ratio to handle partial/inclusion matching
-                set_ratio = fuzz.token_set_ratio(username, best_match_name)
-                best_score = max(score_val, set_ratio)
-
-        matching_time = time.time() - match_start
-
-        # Duplicate threshold is 92% similarity
-        if best_score >= 92.0:
-            # Duplicate found → route to duplicate folder
-            filename = generate_filename(username)
-            dest_folder = get_storage_path(promoter.name, is_duplicate=True)
-            relative_path = save_uploaded_image(temp_path, dest_folder, filename)
-
-            total_time = time.time() - total_start
-            submission = Submission(
-                promoter_id=promoter.id,
-                extracted_username=username,
-                image_path=relative_path,
-                status="duplicate",
-                ocr_raw_text=raw_text,
-                ocr_time=ocr_time,
-                rule_time=rule_time,
-                matching_time=matching_time,
-                total_time=total_time,
-                ocr_confidence=ocr_confidence,
-                candidate_score=candidate_score,
-                matched_name=best_match_name,
-                similarity=best_score,
-                llm_used=llm_used,
-            )
-            db.add(submission)
-            db.commit()
-
-            return SubmissionResult(
-                filename=upload_file.filename or "unknown",
-                status="duplicate",
-                extracted_username=username,
-                message=f"Duplicate! Username '{username}' matched existing '{best_match_name}' ({best_score:.1f}% similarity).",
-            )
-
-        # ── Step 5: New username — save to valid folder ──
-        filename = generate_filename(username)
-        dest_folder = get_storage_path(promoter.name, is_duplicate=False)
-        relative_path = save_uploaded_image(temp_path, dest_folder, filename)
-
-        total_time = time.time() - total_start
-        submission = Submission(
-            promoter_id=promoter.id,
-            extracted_username=username,
-            image_path=relative_path,
-            status="valid",
-            ocr_raw_text=raw_text,
-            ocr_time=ocr_time,
-            rule_time=rule_time,
-            matching_time=matching_time,
-            total_time=total_time,
-            ocr_confidence=ocr_confidence,
-            candidate_score=candidate_score,
-            matched_name=best_match_name,
-            similarity=best_score,
-            llm_used=llm_used,
-        )
-        db.add(submission)
-        db.flush()  # Get submission.id before committing
-
-        try:
-            # Insert into valid_usernames
-            valid_entry = ValidUsername(
-                username=username,
-                submission_id=submission.id,
-                promoter_id=promoter.id,
-            )
-            db.add(valid_entry)
-            db.commit()
-
-            return SubmissionResult(
-                filename=upload_file.filename or "unknown",
-                status="valid",
-                extracted_username=username,
-                message=f"Success! Username '{username}' registered.",
-            )
-
-        except IntegrityError:
-            # Database unique constraint fail (race condition fallback)
-            db.rollback()
-
-            # Move file to duplicate directory
-            src_path = UPLOAD_DIR / relative_path
-            dup_folder = get_storage_path(promoter.name, is_duplicate=True)
-            dup_dest = dup_folder / filename
-            if src_path.exists():
-                shutil.move(str(src_path), str(dup_dest))
-            new_relative_path = str(dup_dest.relative_to(UPLOAD_DIR))
-
-            # Re-write duplicate submission record
-            submission.image_path = new_relative_path
-            submission.status = "duplicate"
-            submission.similarity = 100.0  # Exact match constraint hit
-            db.add(submission)
-            db.commit()
-
-            return SubmissionResult(
-                filename=upload_file.filename or "unknown",
-                status="duplicate",
-                extracted_username=username,
-                message=f"Duplicate! Username '{username}' was registered by another promoter.",
-            )
-
-    finally:
-        # Always clean up temporary file
-        if temp_path and temp_path.exists():
-            os.unlink(temp_path)
-
-
 def get_random_avatar(gender: str, db: Session) -> str:
-    # Pool of 8 avatars for male (avatar_m1 to avatar_m8) and 8 for female (avatar_f1 to avatar_f8)
+    """Pick a random avatar, preferring unused ones to avoid duplicates on leaderboard."""
     avatar_pool = [f"/avatars/avatar_m{i}.png" for i in range(1, 9)] if gender == "male" else [f"/avatars/avatar_f{i}.png" for i in range(1, 9)]
     
-    # Query all currently assigned avatars in the database
     assigned_avatars = [r[0] for r in db.query(Promoter.avatar).filter(Promoter.avatar != None).all()]
     
-    # Find unused avatars
     unused = [a for a in avatar_pool if a not in assigned_avatars]
     
     if unused:
-        # Pick a random one from the unused pool
         return random.choice(unused)
     else:
-        # If all are used, find the frequency of each avatar and pick the least used one
         freq = {a: 0 for a in avatar_pool}
         for a in assigned_avatars:
             if a in freq:
                 freq[a] += 1
         
-        # Sort by frequency (ascending)
         sorted_avatars = sorted(avatar_pool, key=lambda a: freq[a])
         min_freq = freq[sorted_avatars[0]]
         least_used = [a for a in avatar_pool if freq[a] == min_freq]
         return random.choice(least_used)
 
 
-@router.post("/upload", response_model=UploadResponse)
+@router.post("/upload", response_model=BatchUploadResponse)
 async def upload_screenshots(
     promoter_name: str = Form(..., min_length=1, max_length=100),
     ic_number: str = Form(..., min_length=1, max_length=50),
@@ -271,19 +60,10 @@ async def upload_screenshots(
     db: Session = Depends(get_db),
 ):
     """
-    Upload one or more screenshots for OCR processing.
+    Upload one or more screenshots for async OCR processing.
 
-    Form fields:
-      - promoter_name: The promoter's full name
-      - ic_number: The promoter's IC number (used as unique identifier)
-      - gender: "male" or "female" (optional)
-      - files: One or more image files (JPEG/PNG)
-
-    Each image goes through:
-      1. OCR text extraction
-      2. Username pattern matching
-      3. Duplicate check against the database
-      4. Routing to valid or duplicate storage folder
+    Files are saved to disk immediately and queued for background processing.
+    Returns a batch_id that can be used to poll processing status.
     """
     # Validate file count
     if not files:
@@ -316,25 +96,130 @@ async def upload_screenshots(
         db.commit()
         db.refresh(promoter)
     else:
-        # Update name if the promoter changed it
         if promoter.name != promoter_name.strip():
             promoter.name = promoter_name.strip()
         
-        # If gender changed or if no avatar is assigned, assign new random avatar
         if not promoter.avatar or (gender and promoter.gender != selected_gender):
             promoter.gender = selected_gender
             promoter.avatar = get_random_avatar(selected_gender, db)
         
         db.commit()
 
-    # ── Process each file through the OCR pipeline ──
-    results: List[SubmissionResult] = []
-    for upload_file in files:
-        result = await _process_single_file(upload_file, promoter, db)
-        results.append(result)
+    # ── Generate batch ID ──
+    batch_id = str(uuid.uuid4())
 
-    return UploadResponse(
+    # ── Save each file to disk and create pending submissions ──
+    # Use a "pending" subfolder under the promoter's directory
+    pending_folder = get_storage_path(promoter.name, is_duplicate=False)
+    pending_folder.mkdir(parents=True, exist_ok=True)
+
+    submission_ids = []
+    for upload_file in files:
+        # Read file contents
+        contents = await upload_file.read()
+        file_size_mb = len(contents) / (1024 * 1024)
+
+        if file_size_mb > MAX_FILE_SIZE_MB:
+            # Create a failed submission directly (no need to queue)
+            submission = Submission(
+                promoter_id=promoter.id,
+                batch_id=batch_id,
+                extracted_username=None,
+                image_path="__skipped__",
+                status="ocr_failed",
+                ocr_raw_text=f"File too large ({file_size_mb:.1f}MB). Max is {MAX_FILE_SIZE_MB}MB.",
+            )
+            db.add(submission)
+            db.commit()
+            continue
+
+        # Generate filename and save to disk
+        filename = generate_filename(None)  # No username yet
+        dest_path = pending_folder / filename
+
+        with open(dest_path, "wb") as f:
+            f.write(contents)
+
+        # Relative path for DB storage
+        relative_path = str(dest_path.relative_to(UPLOAD_DIR))
+
+        # Create pending submission record
+        submission = Submission(
+            promoter_id=promoter.id,
+            batch_id=batch_id,
+            extracted_username=None,
+            image_path=relative_path,
+            status="pending",
+        )
+        db.add(submission)
+        db.flush()  # Get the ID
+        submission_ids.append(submission.id)
+
+    db.commit()
+
+    # ── Enqueue all submissions for background processing ──
+    for sid in submission_ids:
+        enqueue_ocr_task(sid)
+
+    return BatchUploadResponse(
         success=True,
-        results=results,
+        batch_id=batch_id,
+        total_files=len(files),
+        message=f"Upload successful! {len(files)} file(s) queued for OCR processing.",
         promoter_name=promoter.name,
+    )
+
+
+@router.get("/batch/{batch_id}/status", response_model=BatchStatusResponse)
+async def get_batch_status(
+    batch_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Poll the processing status of a batch upload.
+    Returns the current state of each file in the batch.
+    """
+    submissions = (
+        db.query(Submission)
+        .filter(Submission.batch_id == batch_id)
+        .order_by(Submission.id)
+        .all()
+    )
+
+    if not submissions:
+        raise HTTPException(status_code=404, detail="Batch not found.")
+
+    results = []
+    for sub in submissions:
+        # Build user-facing message based on status
+        if sub.status == "pending":
+            message = "Processing..."
+        elif sub.status == "valid":
+            message = f"Success! Username '{sub.extracted_username}' registered."
+        elif sub.status == "duplicate":
+            if sub.matched_name:
+                message = f"Duplicate! '{sub.extracted_username}' matched '{sub.matched_name}' ({sub.similarity:.1f}%)."
+            else:
+                message = f"Duplicate! Username '{sub.extracted_username}' was already registered."
+        elif sub.status == "ocr_failed":
+            message = sub.ocr_raw_text or "Could not detect username."
+        else:
+            message = "Unknown status."
+
+        results.append(SubmissionResult(
+            filename=Path(sub.image_path).name if sub.image_path != "__skipped__" else "skipped",
+            status=sub.status,
+            extracted_username=sub.extracted_username,
+            message=message,
+        ))
+
+    completed = sum(1 for r in results if r.status != "pending")
+    pending = sum(1 for r in results if r.status == "pending")
+
+    return BatchStatusResponse(
+        batch_id=batch_id,
+        total=len(results),
+        completed=completed,
+        pending=pending,
+        results=results,
     )

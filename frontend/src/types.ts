@@ -6,7 +6,7 @@
 // ── Upload ──
 export interface SubmissionResult {
   filename: string;
-  status: "valid" | "duplicate" | "ocr_failed";
+  status: "valid" | "duplicate" | "ocr_failed" | "pending";
   extracted_username: string | null;
   message: string;
 }
@@ -15,6 +15,22 @@ export interface UploadResponse {
   success: boolean;
   results: SubmissionResult[];
   promoter_name: string;
+}
+
+export interface BatchUploadResponse {
+  success: boolean;
+  batch_id: string;
+  total_files: number;
+  message: string;
+  promoter_name: string;
+}
+
+export interface BatchStatusResponse {
+  batch_id: string;
+  total: number;
+  completed: number;
+  pending: number;
+  results: SubmissionResult[];
 }
 
 // ── Leaderboard ──

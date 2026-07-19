@@ -1,21 +1,28 @@
 /**
- * Upload Page — Mobile-friendly form for promoters.
+ * Upload Page — Async upload with real-time OCR processing status.
  *
- * Features:
- *  - Promoter name + IC number inputs with LocalStorage persistence
- *  - Drag & drop image upload zone with preview thumbnails
- *  - Client-side image compression before upload
- *  - Loading state during OCR processing
- *  - Results modal showing per-file OCR outcomes
+ * Flow:
+ *  1. Promoter fills form + selects files
+ *  2. Submit → files upload instantly, backend returns batch_id
+ *  3. Frontend enters "processing" mode, polls batch status every 3 seconds
+ *  4. Each file's status updates in real-time (pending → valid/duplicate/ocr_failed)
+ *  5. When all files are processed, shows final summary
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { savePromoterInfo, loadPromoterInfo, clearPromoterInfo } from "../utils/storage";
 import { compressImages } from "../utils/compress";
-import { uploadScreenshots } from "../utils/api";
+import { uploadScreenshots, fetchBatchStatus } from "../utils/api";
 import UploadZone from "../components/UploadZone";
-import ResultModal from "../components/ResultModal";
-import type { UploadResponse } from "../types";
+import type { BatchStatusResponse } from "../types";
+
+/** Status config for icons and colors */
+const STATUS_CONFIG: Record<string, { icon: string; color: string }> = {
+  valid: { icon: "✅", color: "var(--success)" },
+  duplicate: { icon: "❌", color: "var(--danger)" },
+  ocr_failed: { icon: "⚠️", color: "var(--warning)" },
+  pending: { icon: "⏳", color: "var(--accent-blue)" },
+};
 
 export default function Upload() {
   // Promoter info (persisted in LocalStorage)
@@ -29,8 +36,12 @@ export default function Upload() {
 
   // Upload state
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<UploadResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Processing state (async)
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const [batchStatus, setBatchStatus] = useState<BatchStatusResponse | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load saved promoter info on mount
   useEffect(() => {
@@ -43,6 +54,46 @@ export default function Upload() {
       }
       setRemembered(true);
     }
+  }, []);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, []);
+
+  // Start polling when batchId is set
+  const startPolling = useCallback((id: string) => {
+    // Clear any existing polling
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+
+    const poll = async () => {
+      try {
+        const status = await fetchBatchStatus(id);
+        setBatchStatus(status);
+
+        // Stop polling when all files are processed
+        if (status.pending === 0) {
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    };
+
+    // Initial fetch
+    poll();
+
+    // Poll every 3 seconds
+    pollingRef.current = setInterval(poll, 3000);
   }, []);
 
   // Handle file selection
@@ -62,6 +113,14 @@ export default function Upload() {
     setIcNumber("");
     setGender("female");
     setRemembered(false);
+  };
+
+  // Reset to upload another batch
+  const handleReset = () => {
+    setBatchId(null);
+    setBatchStatus(null);
+    setFiles([]);
+    setError(null);
   };
 
   // Submit the upload
@@ -88,7 +147,7 @@ export default function Upload() {
       // Compress images before upload
       const compressed = await compressImages(files);
 
-      // Upload to backend
+      // Upload to backend (returns immediately with batch_id)
       const response = await uploadScreenshots(
         name.trim(),
         icNumber.trim(),
@@ -96,8 +155,13 @@ export default function Upload() {
         compressed
       );
 
-      setResult(response);
-      setFiles([]); // Clear files after successful upload
+      // Enter processing mode
+      setBatchId(response.batch_id);
+      setFiles([]); // Clear file previews
+
+      // Start polling for status
+      startPolling(response.batch_id);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {
@@ -105,6 +169,127 @@ export default function Upload() {
     }
   };
 
+  // ── Render: Processing Status Panel ──
+  if (batchId && batchStatus) {
+    const { total, completed, pending, results } = batchStatus;
+    const allDone = pending === 0;
+    const validCount = results.filter((r) => r.status === "valid").length;
+    const dupCount = results.filter((r) => r.status === "duplicate").length;
+    const failCount = results.filter((r) => r.status === "ocr_failed").length;
+    const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return (
+      <div className="page">
+        <div className="section-header">
+          <h1 className="section-title">
+            {allDone ? "🎉 Processing Complete!" : "⚙️ Processing Screenshots..."}
+          </h1>
+          <p className="section-subtitle">
+            {allDone
+              ? `All ${total} file(s) have been processed.`
+              : `${completed} of ${total} file(s) processed...`}
+          </p>
+        </div>
+
+        <div className="glass-card" style={{ padding: "28px 24px" }}>
+          {/* Progress Bar */}
+          <div className="processing-progress">
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="progress-label">
+              {progressPercent}% ({completed}/{total})
+            </div>
+          </div>
+
+          {/* Summary Stats (only when done) */}
+          {allDone && (
+            <div className="processing-summary">
+              <div className="summary-stat valid">
+                <span className="summary-icon">✅</span>
+                <span className="summary-value">{validCount}</span>
+                <span className="summary-label">Valid</span>
+              </div>
+              <div className="summary-stat duplicate">
+                <span className="summary-icon">❌</span>
+                <span className="summary-value">{dupCount}</span>
+                <span className="summary-label">Duplicate</span>
+              </div>
+              <div className="summary-stat failed">
+                <span className="summary-icon">⚠️</span>
+                <span className="summary-value">{failCount}</span>
+                <span className="summary-label">Failed</span>
+              </div>
+            </div>
+          )}
+
+          {/* Per-file Results */}
+          <div className="processing-results">
+            {results.map((item, index) => {
+              const config = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+              return (
+                <div
+                  className={`processing-item ${item.status}`}
+                  key={index}
+                >
+                  <div className="processing-item-icon">
+                    {item.status === "pending" ? (
+                      <div className="spinner-small" />
+                    ) : (
+                      config.icon
+                    )}
+                  </div>
+                  <div className="processing-item-details">
+                    <div className="processing-item-filename">
+                      File {index + 1}
+                    </div>
+                    <div
+                      className="processing-item-message"
+                      style={{ color: config.color }}
+                    >
+                      {item.status === "pending" ? "Waiting for OCR..." : item.message}
+                    </div>
+                    {item.extracted_username && (
+                      <div className="processing-item-username">
+                        👤 {item.extracted_username}
+                      </div>
+                    )}
+                  </div>
+                  <div className="processing-item-status" style={{ color: config.color }}>
+                    {item.status.toUpperCase()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Action Button */}
+          {allDone && (
+            <button
+              className="btn btn-primary btn-full"
+              onClick={handleReset}
+              style={{ marginTop: 20 }}
+            >
+              📸 Upload More Screenshots
+            </button>
+          )}
+
+          {/* Pulsing indicator while processing */}
+          {!allDone && (
+            <div className="processing-indicator">
+              <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+              <span>OCR engine is processing your screenshots...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: Upload Form ──
   return (
     <div className="page">
       {/* Header */}
@@ -202,6 +387,7 @@ export default function Upload() {
               files={files}
               onFilesSelected={handleFilesSelected}
               onRemoveFile={handleRemoveFile}
+              maxFiles={20}
             />
           </div>
 
@@ -230,7 +416,7 @@ export default function Upload() {
             {uploading ? (
               <>
                 <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
-                Processing OCR...
+                Uploading...
               </>
             ) : (
               <>
@@ -240,14 +426,6 @@ export default function Upload() {
           </button>
         </form>
       </div>
-
-      {/* Results Modal */}
-      {result && (
-        <ResultModal
-          result={result}
-          onClose={() => setResult(null)}
-        />
-      )}
     </div>
   );
 }
