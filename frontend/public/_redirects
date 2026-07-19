@@ -1,11 +1,3 @@
-# ================================================================
-# Backend: Render (always on, free tier — slower OCR)
-# ================================================================
-# For FAST MODE: replace the lines below with your Cloudflare Tunnel URL:
-#   /api/*      https://xxxx.trycloudflare.com/api/:splat  200
-#   /uploads/*  https://xxxx.trycloudflare.com/uploads/:splat  200
-# ================================================================
-
-/api/*      https://promoter-performance-tracker.onrender.com/api/:splat  200
-/uploads/*  https://promoter-performance-tracker.onrender.com/uploads/:splat  200
-/*          /index.html                                                    200
+/api/*      https://confirmed-transmission-pathology-joel.trycloudflare.com/api/:splat  200
+/uploads/*  https://confirmed-transmission-pathology-joel.trycloudflare.com/uploads/:splat  200
+/*          /index.html                                                                   200
