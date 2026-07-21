@@ -12,11 +12,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  fetchAdminStats, 
-  deleteSubmission, 
-  deleteSubmissionsBatch, 
-  fetchAdminPromoters 
+import {
+  fetchAdminStats,
+  deleteSubmission,
+  deleteSubmissionsBatch,
+  fetchAdminPromoters,
+  downloadExport
 } from "../utils/api";
 import type { AdminStatsResponse } from "../types";
 
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
   const [promotersError, setPromotersError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [showBatchConfirmModal, setShowBatchConfirmModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const token = sessionStorage.getItem("admin_token");
 
@@ -74,6 +76,25 @@ export default function AdminDashboard() {
   const handleLogout = () => {
     sessionStorage.removeItem("admin_token");
     navigate("/admin", { replace: true });
+  };
+
+  // One-click Excel export of all data
+  const handleExport = async () => {
+    if (!token) return;
+    setExporting(true);
+    setError(null);
+    try {
+      await downloadExport(token);
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("expired")) {
+        sessionStorage.removeItem("admin_token");
+        navigate("/admin", { replace: true });
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Select row handler
@@ -204,9 +225,18 @@ export default function AdminDashboard() {
             Monitor all submissions and promoter activity
           </p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
-          🚪 Logout
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {exporting ? "Preparing…" : "⬇ Download Excel"}
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
+            🚪 Logout
+          </button>
+        </div>
       </div>
 
       {/* Loading */}

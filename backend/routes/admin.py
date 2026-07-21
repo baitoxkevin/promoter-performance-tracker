@@ -11,11 +11,14 @@ Note: This is a simple auth scheme suitable for internal tools.
 For production, consider JWT tokens or OAuth.
 """
 
+import io
 import secrets
 import time
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -179,6 +182,127 @@ async def get_admin_stats(
         total_duplicate=total_duplicate,
         total_ocr_failed=total_ocr_failed,
         submissions=submissions,
+    )
+
+
+def _fmt_myt(dt) -> str:
+    """Format a stored (UTC) datetime as Malaysia local time for the report."""
+    if not dt:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    myt = dt.astimezone(timezone(timedelta(hours=8)))
+    return myt.strftime("%Y-%m-%d %H:%M")
+
+
+@router.get("/admin/export")
+async def export_excel(
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_token),
+):
+    """
+    One-click Excel export of all campaign data.
+    Three sheets: Signups (valid only), All Submissions, Promoters.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    wb = Workbook()
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor="0066CC")
+
+    def style_header(ws, ncols):
+        for c in range(1, ncols + 1):
+            cell = ws.cell(row=1, column=c)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="left")
+        ws.freeze_panes = "A2"
+
+    def autosize(ws):
+        for col in ws.columns:
+            width = max((len(str(c.value)) for c in col if c.value is not None), default=10)
+            ws.column_dimensions[col[0].column_letter].width = min(max(width + 2, 10), 45)
+
+    # Pull all submissions joined with promoter, newest first
+    rows = (
+        db.query(Submission, Promoter)
+        .join(Promoter, Promoter.id == Submission.promoter_id)
+        .order_by(Submission.created_at.desc())
+        .all()
+    )
+
+    # ── Sheet 1: Signups (valid only) — the payout-relevant data ──
+    ws1 = wb.active
+    ws1.title = "Signups"
+    ws1.append(["No.", "Promoter", "Full Name", "Member ID", "Date/Time (MYT)"])
+    n = 0
+    for sub, promoter in rows:
+        if sub.status != "valid":
+            continue
+        n += 1
+        ws1.append([
+            n,
+            promoter.name,
+            sub.full_name or sub.extracted_username or "",
+            sub.member_id or "",
+            _fmt_myt(sub.created_at),
+        ])
+    style_header(ws1, 5)
+    autosize(ws1)
+
+    # ── Sheet 2: All Submissions ──
+    ws2 = wb.create_sheet("All Submissions")
+    ws2.append([
+        "ID", "Promoter", "IC Number", "Full Name", "Member ID", "Status",
+        "Matched With", "Similarity %", "OCR Confidence", "Date/Time (MYT)",
+    ])
+    for sub, promoter in rows:
+        ws2.append([
+            sub.id,
+            promoter.name,
+            promoter.ic_number,
+            sub.full_name or sub.extracted_username or "",
+            sub.member_id or "",
+            sub.status,
+            sub.matched_name or "",
+            round(sub.similarity, 1) if sub.similarity is not None else "",
+            round(sub.ocr_confidence, 2) if sub.ocr_confidence is not None else "",
+            _fmt_myt(sub.created_at),
+        ])
+    style_header(ws2, 10)
+    autosize(ws2)
+
+    # ── Sheet 3: Promoters (with valid signup counts) ──
+    ws3 = wb.create_sheet("Promoters")
+    ws3.append(["Promoter", "IC Number", "Gender", "Valid Signups", "Joined (MYT)"])
+    counts = dict(
+        db.query(ValidUsername.promoter_id, func.count(ValidUsername.id))
+        .group_by(ValidUsername.promoter_id)
+        .all()
+    )
+    promoters = db.query(Promoter).order_by(Promoter.name).all()
+    for p in promoters:
+        ws3.append([
+            p.name,
+            p.ic_number,
+            p.gender or "",
+            counts.get(p.id, 0),
+            _fmt_myt(p.created_at),
+        ])
+    style_header(ws3, 5)
+    autosize(ws3)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    stamp = datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d_%H%M")
+    filename = f"promoter-data-{stamp}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

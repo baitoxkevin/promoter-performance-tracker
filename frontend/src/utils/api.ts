@@ -130,6 +130,36 @@ export async function fetchAdminStats(
 }
 
 /**
+ * Download all campaign data as an Excel file (.xlsx).
+ * Fetches with the admin token, then triggers a browser download.
+ */
+export async function downloadExport(token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/export`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 401) {
+    sessionStorage.removeItem("admin_token");
+    throw new Error("Session expired. Please log in again.");
+  }
+  if (!res.ok) throw new Error("Export failed. Please try again.");
+
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match ? match[1] : "promoter-data.xlsx";
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Delete a submission by ID.
  * Requires a valid admin token in the Authorization header.
  */
