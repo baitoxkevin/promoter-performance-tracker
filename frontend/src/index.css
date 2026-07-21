@@ -297,7 +297,49 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 600; color: var(
   font-weight: 600;
 }
 
-/* ── Capture actions (snap / gallery) ── */
+/* ── Snap-first capture ── */
+.snap-primary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 22px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--baito-gradient);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1.15rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 102, 204, 0.24);
+  transition: var(--transition);
+}
+
+.snap-primary:active { transform: scale(0.99); }
+.snap-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.snap-primary svg { width: 26px; height: 26px; stroke: #fff; }
+
+.gallery-link {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  text-align: center;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.gallery-link:hover { text-decoration: underline; }
+.gallery-link:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Capture actions (gallery grid) ── */
 .capture-row { display: flex; gap: 10px; }
 
 .capture-btn {

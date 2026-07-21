@@ -1,11 +1,10 @@
 /**
- * Upload Page — Snap or select membership photos, upload, watch OCR results live.
+ * Upload Page — Snap & upload in one tap.
  *
- * Flow:
- *  1. Promoter fills name + IC once (remembered on this phone)
- *  2. Snap Photo (camera) or Choose Photos (gallery)
- *  3. Submit → instant upload, then real-time per-photo OCR status
- *  4. Done → summary + link to My Uploads history
+ * Returning promoter (name + IC remembered on this phone):
+ *   tap "Snap & Upload" → camera → shutter → uploads instantly → result shows.
+ * First time: fill name + IC once; from then on it's one tap per customer.
+ * Gallery path stays batch: select several, review, then upload.
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -55,7 +54,6 @@ export default function Upload() {
 
   const startPolling = useCallback((id: string) => {
     if (pollingRef.current) clearInterval(pollingRef.current);
-
     const poll = async () => {
       try {
         const status = await fetchBatchStatus(id);
@@ -68,13 +66,53 @@ export default function Upload() {
         console.error("Polling error:", err);
       }
     };
-
     poll();
     pollingRef.current = setInterval(poll, 1500);
   }, []);
 
-  const handleFilesSelected = (newFiles: File[]) => {
-    setFiles((prev) => [...prev, ...newFiles]);
+  // Core upload — takes files directly so camera capture can fire it
+  // immediately without waiting on a state update.
+  const doUpload = useCallback(
+    async (toUpload: File[], curName: string, curIc: string, curGender: string) => {
+      if (!curName.trim() || !curIc.trim()) {
+        setError("Enter your name and IC once — then snapping uploads instantly.");
+        return;
+      }
+      if (toUpload.length === 0) return;
+
+      setError(null);
+      setUploading(true);
+      try {
+        savePromoterInfo({ name: curName.trim(), ic_number: curIc.trim(), gender: curGender });
+        setRemembered(true);
+        const compressed = await compressImages(toUpload);
+        const response = await uploadScreenshots(curName.trim(), curIc.trim(), curGender, compressed);
+        setFiles([]);
+        setBatchId(response.batch_id);
+        startPolling(response.batch_id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [startPolling]
+  );
+
+  // Camera: capture → upload straight away (holds the photo only if name/IC
+  // aren't filled yet, so a first-timer can complete the form and upload).
+  const handleCameraCapture = (captured: File[]) => {
+    if (!name.trim() || !icNumber.trim()) {
+      setFiles((prev) => [...prev, ...captured]);
+      setError("Enter your name and IC once — then snapping uploads instantly.");
+      return;
+    }
+    doUpload(captured, name, icNumber, gender);
+  };
+
+  // Gallery: add to the tray for review, upload with the button.
+  const handleGallerySelect = (selected: File[]) => {
+    setFiles((prev) => [...prev, ...selected]);
   };
 
   const handleRemoveFile = (index: number) => {
@@ -96,36 +134,9 @@ export default function Upload() {
     setError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!name.trim() || !icNumber.trim()) {
-      setError("Please fill in your name and IC number.");
-      return;
-    }
-    if (files.length === 0) {
-      setError("Please snap or select at least one photo.");
-      return;
-    }
-
-    setError(null);
-    setUploading(true);
-
-    try {
-      savePromoterInfo({ name: name.trim(), ic_number: icNumber.trim(), gender });
-      setRemembered(true);
-
-      const compressed = await compressImages(files);
-      const response = await uploadScreenshots(name.trim(), icNumber.trim(), gender, compressed);
-
-      setBatchId(response.batch_id);
-      setFiles([]);
-      startPolling(response.batch_id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
-    } finally {
-      setUploading(false);
-    }
+    doUpload(files, name, icNumber, gender);
   };
 
   // ── Processing / results view ──
@@ -143,20 +154,22 @@ export default function Upload() {
           <h1 className="section-title">{allDone ? "Done" : "Processing"}</h1>
           <p className="section-subtitle">
             {allDone
-              ? `All ${total} photo${total !== 1 ? "s" : ""} processed.`
-              : `${completed} of ${total} photo${total !== 1 ? "s" : ""} processed…`}
+              ? `${total} photo${total !== 1 ? "s" : ""} processed.`
+              : `${completed} of ${total}…`}
           </p>
         </div>
 
         <div className="glass-card">
-          <div className="processing-progress">
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+          {!allDone && (
+            <div className="processing-progress">
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+              </div>
+              <div className="progress-label">
+                {progressPercent}% ({completed}/{total})
+              </div>
             </div>
-            <div className="progress-label">
-              {progressPercent}% ({completed}/{total})
-            </div>
-          </div>
+          )}
 
           {allDone && (
             <div className="processing-summary">
@@ -198,7 +211,7 @@ export default function Upload() {
           {allDone ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 20 }}>
               <button className="btn btn-primary btn-full" onClick={handleReset}>
-                Upload More
+                Snap Next
               </button>
               <Link to="/my-uploads" className="btn btn-secondary btn-full">
                 View My Uploads
@@ -207,7 +220,7 @@ export default function Upload() {
           ) : (
             <div className="processing-indicator">
               <div className="spinner-small" />
-              <span>Reading your photos…</span>
+              <span>Reading your photo…</span>
             </div>
           )}
         </div>
@@ -215,120 +228,111 @@ export default function Upload() {
     );
   }
 
-  // ── Upload form ──
+  // ── Upload / capture view ──
+  const infoReady = name.trim() !== "" && icNumber.trim() !== "";
+
   return (
     <div className="page page-narrow">
       <div className="section-header">
-        <h1 className="section-title">Upload Proof</h1>
+        <h1 className="section-title">Snap & Upload</h1>
         <p className="section-subtitle">
-          Snap a photo of the customer's membership screen — we'll read the name and member ID
+          Point at the customer's membership screen and shoot — we read the name and member ID
           automatically.
         </p>
       </div>
 
       <div className="glass-card">
-        <form onSubmit={handleSubmit}>
-          {remembered && (
-            <div className="remember-banner">
-              <span>
-                Welcome back, <strong>{name}</strong>
-              </span>
-              <button type="button" className="remember-banner-clear" onClick={handleClearSaved}>
-                Not you?
-              </button>
-            </div>
-          )}
-
-          {!remembered && (
-            <>
-              <div className="form-group">
-                <label className="form-label" htmlFor="promoter-name">
-                  Your Name
-                </label>
-                <input
-                  id="promoter-name"
-                  className="form-input"
-                  type="text"
-                  placeholder="Full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  maxLength={100}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="ic-number">
-                  IC Number
-                </label>
-                <input
-                  id="ic-number"
-                  className="form-input"
-                  type="text"
-                  placeholder="e.g. 010203-10-1234"
-                  value={icNumber}
-                  onChange={(e) => setIcNumber(e.target.value)}
-                  required
-                  maxLength={50}
-                />
-                <p className="form-hint">Used only to identify you. Never shown publicly.</p>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Gender</label>
-                <div className="gender-toggle-group">
-                  <button
-                    type="button"
-                    className={`gender-btn ${gender === "male" ? "active" : ""}`}
-                    onClick={() => setGender("male")}
-                  >
-                    Male
-                  </button>
-                  <button
-                    type="button"
-                    className={`gender-btn ${gender === "female" ? "active" : ""}`}
-                    onClick={() => setGender("female")}
-                  >
-                    Female
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">Photos</label>
-            <UploadZone
-              files={files}
-              onFilesSelected={handleFilesSelected}
-              onRemoveFile={handleRemoveFile}
-              maxFiles={20}
-            />
+        {remembered ? (
+          <div className="remember-banner">
+            <span>
+              Welcome back, <strong>{name}</strong>
+            </span>
+            <button type="button" className="remember-banner-clear" onClick={handleClearSaved}>
+              Not you?
+            </button>
           </div>
-
-          {error && (
-            <div className="error-alert" style={{ marginBottom: 14 }}>
-              {error}
+        ) : (
+          <form onSubmit={(e) => e.preventDefault()}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="promoter-name">
+                Your Name
+              </label>
+              <input
+                id="promoter-name"
+                className="form-input"
+                type="text"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={100}
+              />
             </div>
-          )}
 
+            <div className="form-group">
+              <label className="form-label" htmlFor="ic-number">
+                IC Number
+              </label>
+              <input
+                id="ic-number"
+                className="form-input"
+                type="text"
+                placeholder="e.g. 010203-10-1234"
+                value={icNumber}
+                onChange={(e) => setIcNumber(e.target.value)}
+                maxLength={50}
+              />
+              <p className="form-hint">Entered once. Used only to identify you — never shown publicly.</p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Gender</label>
+              <div className="gender-toggle-group">
+                <button
+                  type="button"
+                  className={`gender-btn ${gender === "male" ? "active" : ""}`}
+                  onClick={() => setGender("male")}
+                >
+                  Male
+                </button>
+                <button
+                  type="button"
+                  className={`gender-btn ${gender === "female" ? "active" : ""}`}
+                  onClick={() => setGender("female")}
+                >
+                  Female
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+
+        <UploadZone
+          files={files}
+          onCameraCapture={handleCameraCapture}
+          onGallerySelect={handleGallerySelect}
+          onRemoveFile={handleRemoveFile}
+          maxFiles={20}
+          busy={uploading}
+        />
+
+        {error && (
+          <div className="error-alert" style={{ marginTop: 14 }}>
+            {error}
+          </div>
+        )}
+
+        {/* Manual upload button — only for gallery batches waiting in the tray */}
+        {files.length > 0 && (
           <button
-            type="submit"
+            type="button"
             className="btn btn-primary btn-full"
-            disabled={uploading || files.length === 0}
+            style={{ marginTop: 14 }}
+            onClick={handleSubmit}
+            disabled={uploading || !infoReady}
           >
-            {uploading ? (
-              <>
-                <div className="spinner-small" style={{ borderTopColor: "#fff" }} />
-                Uploading…
-              </>
-            ) : files.length > 0 ? (
-              `Upload ${files.length} Photo${files.length !== 1 ? "s" : ""}`
-            ) : (
-              "Upload"
-            )}
+            {uploading ? "Uploading…" : `Upload ${files.length} Photo${files.length !== 1 ? "s" : ""}`}
           </button>
-        </form>
+        )}
       </div>
     </div>
   );

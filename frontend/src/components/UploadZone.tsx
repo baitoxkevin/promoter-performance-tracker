@@ -1,37 +1,38 @@
 /**
- * UploadZone — Camera-first photo capture with preview thumbnails.
+ * UploadZone — Snap-first capture.
  *
- * Two clear actions on mobile:
- *  - Snap Photo: opens the phone camera directly (capture="environment")
- *  - Choose Photos: opens the gallery / file picker (multiple)
- * Selected photos show as removable thumbnails before upload.
+ *  - "Snap & Upload": opens the camera; the captured photo is handed to
+ *    onCameraCapture, which uploads it immediately (no extra tap).
+ *  - "Choose from gallery": batch-select existing photos to review, then
+ *    upload with the form's button.
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 
 interface Props {
   files: File[];
-  onFilesSelected: (files: File[]) => void;
+  onCameraCapture: (files: File[]) => void;
+  onGallerySelect: (files: File[]) => void;
   onRemoveFile: (index: number) => void;
   maxFiles?: number;
+  busy?: boolean;
 }
 
 const CameraIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
     <circle cx="12" cy="13" r="4" />
   </svg>
 );
 
-const GalleryIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <polyline points="21 15 16 10 5 21" />
-  </svg>
-);
-
-export default function UploadZone({ files, onFilesSelected, onRemoveFile, maxFiles = 20 }: Props) {
+export default function UploadZone({
+  files,
+  onCameraCapture,
+  onGallerySelect,
+  onRemoveFile,
+  maxFiles = 20,
+  busy = false,
+}: Props) {
   const [limitWarning, setLimitWarning] = useState("");
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -43,9 +44,9 @@ export default function UploadZone({ files, onFilesSelected, onRemoveFile, maxFi
       if (!fileList) return [];
       const images = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
       if (files.length + images.length > maxFiles) {
-        const allowed = images.slice(0, remaining);
+        const allowed = images.slice(0, Math.max(0, remaining));
         setLimitWarning(
-          `Maximum ${maxFiles} photos per upload. ${images.length - allowed.length} photo(s) were not added.`
+          `Maximum ${maxFiles} photos per upload. ${images.length - allowed.length} not added.`
         );
         setTimeout(() => setLimitWarning(""), 4000);
         return allowed;
@@ -56,89 +57,88 @@ export default function UploadZone({ files, onFilesSelected, onRemoveFile, maxFi
     [files.length, maxFiles, remaining]
   );
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = filterImages(e.target.files);
-    if (selected.length > 0) onFilesSelected(selected);
+  const handleCamera = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const captured = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
     e.target.value = "";
+    if (captured.length > 0) onCameraCapture(captured);
+  };
+
+  const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = filterImages(e.target.files);
+    e.target.value = "";
+    if (selected.length > 0) onGallerySelect(selected);
   };
 
   return (
     <div>
-      <div className="capture-row">
-        <button
-          type="button"
-          className="capture-btn"
-          onClick={() => cameraRef.current?.click()}
-          disabled={remaining <= 0}
-        >
-          <CameraIcon />
-          <span className="capture-btn-label">Snap Photo</span>
-          <span className="capture-btn-hint">Open camera</span>
-        </button>
+      <button
+        type="button"
+        className="snap-primary"
+        onClick={() => cameraRef.current?.click()}
+        disabled={busy}
+      >
+        <CameraIcon />
+        {busy ? "Uploading…" : "Snap & Upload"}
+      </button>
 
-        <button
-          type="button"
-          className="capture-btn"
-          onClick={() => galleryRef.current?.click()}
-          disabled={remaining <= 0}
-        >
-          <GalleryIcon />
-          <span className="capture-btn-label">Choose Photos</span>
-          <span className="capture-btn-hint">From gallery</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        className="gallery-link"
+        onClick={() => galleryRef.current?.click()}
+        disabled={busy}
+      >
+        or choose photos from gallery
+      </button>
 
-      {/* Hidden inputs: camera capture + multi-select gallery */}
+      {/* Camera: single shot, uploads immediately */}
       <input
         ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"
-        onChange={handleChange}
+        onChange={handleCamera}
         style={{ display: "none" }}
       />
+      {/* Gallery: multi-select, review then upload */}
       <input
         ref={galleryRef}
         type="file"
         accept="image/*"
         multiple
-        onChange={handleChange}
+        onChange={handleGallery}
         style={{ display: "none" }}
       />
-
-      {files.length > 0 && (
-        <div className="capture-count">
-          {files.length} photo{files.length !== 1 ? "s" : ""} ready · {remaining} more allowed
-        </div>
-      )}
 
       {limitWarning && <div className="upload-zone-warning">{limitWarning}</div>}
 
       {files.length > 0 && (
-        <div className="preview-grid">
-          {files.map((file, index) => (
-            <div key={`${file.name}-${index}`} className="preview-item">
-              <img
-                src={URL.createObjectURL(file)}
-                alt={file.name}
-                onLoad={(e) => {
-                  URL.revokeObjectURL((e.target as HTMLImageElement).src);
-                }}
-              />
-              <button
-                type="button"
-                className="preview-remove"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveFile(index);
-                }}
-                title="Remove"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="capture-count">
+            {files.length} photo{files.length !== 1 ? "s" : ""} selected — tap Upload below
+          </div>
+          <div className="preview-grid">
+            {files.map((file, index) => (
+              <div key={`${file.name}-${index}`} className="preview-item">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={file.name}
+                  onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                />
+                <button
+                  type="button"
+                  className="preview-remove"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveFile(index);
+                  }}
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
