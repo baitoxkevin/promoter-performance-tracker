@@ -257,7 +257,11 @@ async def my_submissions(
     deters brute-force enumeration of IC numbers.
     """
     fwd = request.headers.get("x-forwarded-for", "")
-    client_ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "?")
+    client_ip = (
+        request.headers.get("x-nf-client-connection-ip")  # real client IP when proxied via Netlify
+        or (fwd.split(",")[0].strip() if fwd else None)
+        or (request.client.host if request.client else "?")
+    )
     now = time.time()
     hits = [t for t in _lookup_hits.get(client_ip, []) if now - t < _LOOKUP_WINDOW]
     if len(hits) >= _LOOKUP_LIMIT:
