@@ -41,7 +41,8 @@ PENALIZED_WORDS = {
     "history", "points", "rewards", "vouchers", "voucher", "account", "details",
     "member", "status", "level", "loyalty", "successful", "success", "fail", 
     "failed", "register", "registration", "welcome", "signups", "signup", "promoter",
-    "bites", "purveyor", "food", "notification"
+    "bites", "purveyor", "food", "notification", "copy", "copied", "membership",
+    "events", "event"
 }
 
 def preprocess_image(image_path: str) -> Tuple[np.ndarray, float]:
@@ -242,7 +243,13 @@ def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str],
             
         score = 0
         text_lower = clean_text.lower()
-        
+
+        # Lines that are exactly a UI/button/label word (e.g. "Copy", "Membership")
+        # or any "Membership No."-style label can never be the name — skip them
+        # outright so adjacency bonuses can't rescue them
+        if text_lower in PENALIZED_WORDS or "membership" in text_lower:
+            continue
+
         # Check context patterns by scanning surrounding lines
         # Check preceding line (if any)
         if i > 0:
@@ -266,16 +273,23 @@ def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str],
             continue
 
         # Check succeeding lines for member metadata/ID markers (Bonus points)
-        # Name is usually followed by Member ID or Member Since or points
-        for offset in [1, 2]:
-            if i + offset < len(ocr_lines):
-                next_text = ocr_lines[i+offset]["text"].lower()
-                if any(kw in next_text for kw in ["member since", "since", "member id", "points", "loyalty"]):
-                    score += 25
-                    break
-                elif next_text.strip().isdigit() and len(next_text.strip()) >= 5:
-                    score += 20
-                    break
+        # Name is usually followed by Member ID or Member Since or points.
+        # Only name-like lines earn this bonus — otherwise labels/buttons sitting
+        # above the member number (e.g. "Copy", "Membership No.") hijack it.
+        is_name_like = bool(
+            re.match(r"^[\u4e00-\u9fa5]{2,5}$", clean_text)
+            or re.match(r"^[A-Za-z]+(?:\s+[A-Za-z]+){0,5}$", clean_text)
+        )
+        if is_name_like:
+            for offset in [1, 2]:
+                if i + offset < len(ocr_lines):
+                    next_text = ocr_lines[i+offset]["text"].lower()
+                    if any(kw in next_text for kw in ["member since", "since", "member id", "points", "loyalty"]):
+                        score += 25
+                        break
+                    elif next_text.strip().isdigit() and len(next_text.strip()) >= 5:
+                        score += 20
+                        break
 
         # Language Format Scoring
         # 1. Chinese Name (2~5 characters)
