@@ -256,7 +256,7 @@ def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str],
             prev_text = ocr_lines[i-1]["text"].lower()
             if any(kw in prev_text for kw in ["welcome", "selamat datang", "welcome back", "welcome,"]):
                 score += 30
-            elif any(kw in prev_text for kw in ["name", "username", "nickname", "姓名", "nama", "user"]):
+            elif any(kw in prev_text for kw in ["name", "username", "nickname", "姓名", "nama", "user", "membership"]):
                 score += 20
                 
         # Check if the current line has a prefix (e.g. "Name: LOO CHUN QIAN" or "Welcome, Jessica")
@@ -274,12 +274,14 @@ def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str],
 
         # Check succeeding lines for member metadata/ID markers (Bonus points)
         # Name is usually followed by Member ID or Member Since or points.
-        # Only name-like lines earn this bonus — otherwise labels/buttons sitting
-        # above the member number (e.g. "Copy", "Membership No.") hijack it.
+        # Only name-like lines free of UI words earn this bonus — otherwise
+        # labels/buttons/menus sitting above the member number or near metadata
+        # keywords (e.g. "Copy", "My Transaction History") hijack it.
+        tokens = set(re.findall(r"[a-z]+", text_lower))
         is_name_like = bool(
             re.match(r"^[\u4e00-\u9fa5]{2,5}$", clean_text)
             or re.match(r"^[A-Za-z]+(?:\s+[A-Za-z]+){0,5}$", clean_text)
-        )
+        ) and not tokens.intersection(PENALIZED_WORDS)
         if is_name_like:
             for offset in [1, 2]:
                 if i + offset < len(ocr_lines):
@@ -307,7 +309,6 @@ def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str],
         if any(kw in text_lower for kw in [".com", ".net", ".org", "http", "www", "/"]):
             score -= 20
         # 3. Penalized layout / menu keywords (word token intersection check)
-        tokens = set(re.findall(r"[a-z]+", text_lower))
         if tokens.intersection(PENALIZED_WORDS):
             score -= 20
         # 4. All uppercase random/garbage characters
