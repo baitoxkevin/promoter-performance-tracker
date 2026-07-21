@@ -185,6 +185,16 @@ async def get_admin_stats(
     )
 
 
+def _safe(value):
+    """Neutralize spreadsheet formula injection. A value beginning with a
+    formula trigger (= + - @) or a control char could execute when the file is
+    opened (or, via openpyxl, be written as a real formula). Prefix a quote so
+    it renders strictly as text. Legitimate names/IDs never start with these."""
+    if isinstance(value, str) and value and value[0] in ("=", "+", "-", "@", "\t", "\r", "\n"):
+        return "'" + value
+    return value
+
+
 def _fmt_myt(dt) -> str:
     """Format a stored (UTC) datetime as Malaysia local time for the report."""
     if not dt:
@@ -243,9 +253,9 @@ async def export_excel(
         n += 1
         ws1.append([
             n,
-            promoter.name,
-            sub.full_name or sub.extracted_username or "",
-            sub.member_id or "",
+            _safe(promoter.name),
+            _safe(sub.full_name or sub.extracted_username or ""),
+            _safe(sub.member_id or ""),
             _fmt_myt(sub.created_at),
         ])
     style_header(ws1, 5)
@@ -260,12 +270,12 @@ async def export_excel(
     for sub, promoter in rows:
         ws2.append([
             sub.id,
-            promoter.name,
-            promoter.ic_number,
-            sub.full_name or sub.extracted_username or "",
-            sub.member_id or "",
+            _safe(promoter.name),
+            _safe(promoter.ic_number),
+            _safe(sub.full_name or sub.extracted_username or ""),
+            _safe(sub.member_id or ""),
             sub.status,
-            sub.matched_name or "",
+            _safe(sub.matched_name or ""),
             round(sub.similarity, 1) if sub.similarity is not None else "",
             round(sub.ocr_confidence, 2) if sub.ocr_confidence is not None else "",
             _fmt_myt(sub.created_at),
@@ -284,9 +294,9 @@ async def export_excel(
     promoters = db.query(Promoter).order_by(Promoter.name).all()
     for p in promoters:
         ws3.append([
-            p.name,
-            p.ic_number,
-            p.gender or "",
+            _safe(p.name),
+            _safe(p.ic_number),
+            _safe(p.gender or ""),
             counts.get(p.id, 0),
             _fmt_myt(p.created_at),
         ])
