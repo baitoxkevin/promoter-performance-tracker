@@ -13,6 +13,7 @@ import { savePromoterInfo, loadPromoterInfo, clearPromoterInfo } from "../utils/
 import { compressImages } from "../utils/compress";
 import { uploadScreenshots, fetchBatchStatus } from "../utils/api";
 import UploadZone from "../components/UploadZone";
+import { EVENTS } from "../constants";
 import type { BatchStatusResponse } from "../types";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -26,6 +27,8 @@ export default function Upload() {
   const [name, setName] = useState("");
   const [icNumber, setIcNumber] = useState("");
   const [gender, setGender] = useState("female");
+  const [event, setEvent] = useState("");
+  const [customEvent, setCustomEvent] = useState(false);
   const [remembered, setRemembered] = useState(false);
 
   const [files, setFiles] = useState<File[]>([]);
@@ -42,6 +45,10 @@ export default function Upload() {
       setName(saved.name);
       setIcNumber(saved.ic_number);
       if (saved.gender) setGender(saved.gender);
+      if (saved.event) {
+        setEvent(saved.event);
+        if (!EVENTS.includes(saved.event)) setCustomEvent(true);
+      }
       setRemembered(true);
     }
   }, []);
@@ -73,7 +80,11 @@ export default function Upload() {
   // Core upload — takes files directly so camera capture can fire it
   // immediately without waiting on a state update.
   const doUpload = useCallback(
-    async (toUpload: File[], curName: string, curIc: string, curGender: string) => {
+    async (toUpload: File[], curName: string, curIc: string, curGender: string, curEvent: string) => {
+      if (!curEvent.trim()) {
+        setError("Pick your event/location first.");
+        return;
+      }
       if (!curName.trim() || !curIc.trim()) {
         setError("Enter your name and IC once — then snapping uploads instantly.");
         return;
@@ -83,10 +94,21 @@ export default function Upload() {
       setError(null);
       setUploading(true);
       try {
-        savePromoterInfo({ name: curName.trim(), ic_number: curIc.trim(), gender: curGender });
+        savePromoterInfo({
+          name: curName.trim(),
+          ic_number: curIc.trim(),
+          gender: curGender,
+          event: curEvent.trim(),
+        });
         setRemembered(true);
         const compressed = await compressImages(toUpload);
-        const response = await uploadScreenshots(curName.trim(), curIc.trim(), curGender, compressed);
+        const response = await uploadScreenshots(
+          curName.trim(),
+          curIc.trim(),
+          curGender,
+          compressed,
+          curEvent.trim()
+        );
         setFiles([]);
         setBatchId(response.batch_id);
         startPolling(response.batch_id);
@@ -102,12 +124,16 @@ export default function Upload() {
   // Camera: capture → upload straight away (holds the photo only if name/IC
   // aren't filled yet, so a first-timer can complete the form and upload).
   const handleCameraCapture = (captured: File[]) => {
-    if (!name.trim() || !icNumber.trim()) {
+    if (!event.trim() || !name.trim() || !icNumber.trim()) {
       setFiles((prev) => [...prev, ...captured]);
-      setError("Enter your name and IC once — then snapping uploads instantly.");
+      setError(
+        !event.trim()
+          ? "Pick your event/location first, then snap."
+          : "Enter your name and IC once — then snapping uploads instantly."
+      );
       return;
     }
-    doUpload(captured, name, icNumber, gender);
+    doUpload(captured, name, icNumber, gender, event);
   };
 
   // Gallery: add to the tray for review, upload with the button.
@@ -136,7 +162,17 @@ export default function Upload() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    doUpload(files, name, icNumber, gender);
+    doUpload(files, name, icNumber, gender, event);
+  };
+
+  const handleEventChange = (value: string) => {
+    if (value === "__other__") {
+      setCustomEvent(true);
+      setEvent("");
+    } else {
+      setCustomEvent(false);
+      setEvent(value);
+    }
   };
 
   // ── Processing / results view ──
@@ -153,6 +189,7 @@ export default function Upload() {
         <div className="section-header">
           <h1 className="section-title">{allDone ? "Done" : "Processing"}</h1>
           <p className="section-subtitle">
+            {event ? `${event} · ` : ""}
             {allDone
               ? `${total} photo${total !== 1 ? "s" : ""} processed.`
               : `${completed} of ${total}…`}
@@ -229,7 +266,7 @@ export default function Upload() {
   }
 
   // ── Upload / capture view ──
-  const infoReady = name.trim() !== "" && icNumber.trim() !== "";
+  const infoReady = name.trim() !== "" && icNumber.trim() !== "" && event.trim() !== "";
 
   return (
     <div className="page page-narrow">
@@ -242,6 +279,38 @@ export default function Upload() {
       </div>
 
       <div className="glass-card">
+        {/* Event picker — always visible so promoters can switch location */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="event-select">
+            Event / Location
+          </label>
+          <select
+            id="event-select"
+            className="form-input"
+            value={customEvent ? "__other__" : event}
+            onChange={(e) => handleEventChange(e.target.value)}
+          >
+            <option value="">Select event…</option>
+            {EVENTS.map((ev) => (
+              <option key={ev} value={ev}>
+                {ev}
+              </option>
+            ))}
+            <option value="__other__">Other…</option>
+          </select>
+          {customEvent && (
+            <input
+              className="form-input"
+              style={{ marginTop: 8 }}
+              type="text"
+              placeholder="Type event / location"
+              value={event}
+              onChange={(e) => setEvent(e.target.value)}
+              maxLength={100}
+            />
+          )}
+        </div>
+
         {remembered ? (
           <div className="remember-banner">
             <span>

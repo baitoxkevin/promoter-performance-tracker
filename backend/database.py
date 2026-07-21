@@ -67,6 +67,7 @@ class Submission(Base):
     extracted_username = Column(String(100), nullable=True)  # NULL if OCR failed or pending
     full_name = Column(String(100), nullable=True)           # Member's full name read from the screenshot
     member_id = Column(String(50), nullable=True)            # Membership number read from the screenshot
+    event = Column(String(100), nullable=True, index=True)   # Activation/location this signup belongs to
     image_path = Column(String(500), nullable=False)         # Relative to uploads/
     status = Column(String(20), nullable=False, default="pending")
     ocr_raw_text = Column(Text, nullable=True)               # Full OCR output for debugging

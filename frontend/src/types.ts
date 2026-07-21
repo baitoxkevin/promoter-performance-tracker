@@ -19,6 +19,7 @@ export interface MySubmissionItem {
   status: "valid" | "duplicate" | "ocr_failed" | "pending";
   full_name: string | null;
   member_id: string | null;
+  event: string | null;
   image_url: string | null;
   created_at: string;
 }
@@ -84,6 +85,9 @@ export interface AdminSubmission {
   promoter_name: string;
   ic_number: string;
   extracted_username: string | null;
+  full_name?: string | null;
+  member_id?: string | null;
+  event?: string | null;
   status: "valid" | "duplicate" | "ocr_failed";
   image_path: string;
   created_at: string;
@@ -96,6 +100,8 @@ export interface AdminStatsResponse {
   total_duplicate: number;
   total_ocr_failed: number;
   submissions: AdminSubmission[];
+  events: string[];
+  days: string[];
 }
 
 // ── Promoter Info (stored in LocalStorage) ──
@@ -103,4 +109,5 @@ export interface PromoterInfo {
   name: string;
   ic_number: string;
   gender?: string;
+  event?: string;
 }

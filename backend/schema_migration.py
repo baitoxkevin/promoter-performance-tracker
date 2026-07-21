@@ -46,10 +46,10 @@ def run_submissions_migration():
     cursor = conn.cursor()
     modified = False
 
-    # submissions: full_name + member_id
+    # submissions: full_name + member_id + event
     cursor.execute("PRAGMA table_info(submissions)")
     columns = [col[1] for col in cursor.fetchall()]
-    for col_name in ("full_name", "member_id"):
+    for col_name in ("full_name", "member_id", "event"):
         if col_name not in columns:
             print(f"[Migration] Adding column '{col_name}' (TEXT) to table 'submissions'...")
             cursor.execute(f"ALTER TABLE submissions ADD COLUMN {col_name} TEXT")

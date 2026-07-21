@@ -63,6 +63,7 @@ async def upload_screenshots(
     promoter_name: str = Form(..., min_length=1, max_length=100),
     ic_number: str = Form(..., min_length=1, max_length=50),
     gender: str = Form(None),
+    event: str = Form(None, max_length=100),
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
@@ -85,6 +86,9 @@ async def upload_screenshots(
     selected_gender = "female"
     if gender and gender.strip().lower() == "male":
         selected_gender = "male"
+
+    # Event/activation tag (optional, free text — e.g. "MyTown Concourse")
+    event_tag = event.strip() if event and event.strip() else None
 
     # ── Upsert promoter (find by IC number or create) ──
     promoter = (
@@ -132,6 +136,7 @@ async def upload_screenshots(
                 promoter_id=promoter.id,
                 batch_id=batch_id,
                 extracted_username=None,
+                event=event_tag,
                 image_path="__skipped__",
                 status="ocr_failed",
                 ocr_raw_text=f"File too large ({file_size_mb:.1f}MB). Max is {MAX_FILE_SIZE_MB}MB.",
@@ -155,6 +160,7 @@ async def upload_screenshots(
             promoter_id=promoter.id,
             batch_id=batch_id,
             extracted_username=None,
+            event=event_tag,
             image_path=relative_path,
             status="pending",
         )
@@ -316,6 +322,7 @@ async def my_submissions(
             status=s.status,
             full_name=s.full_name or s.extracted_username,
             member_id=s.member_id,
+            event=s.event,
             image_url=None if s.image_path == "__skipped__" else f"/uploads/{s.image_path}",
             created_at=s.created_at.isoformat() if s.created_at else "",
         )

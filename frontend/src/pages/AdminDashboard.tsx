@@ -27,6 +27,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [eventFilter, setEventFilter] = useState<string>("");
+  const [dayFilter, setDayFilter] = useState<string>("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showPromotersModal, setShowPromotersModal] = useState(false);
@@ -50,7 +52,13 @@ export default function AdminDashboard() {
   const loadData = useCallback(async () => {
     if (!token) return;
     try {
-      const result = await fetchAdminStats(token, statusFilter || undefined);
+      const result = await fetchAdminStats(
+        token,
+        statusFilter || undefined,
+        undefined,
+        eventFilter || undefined,
+        dayFilter || undefined
+      );
       setData(result);
       setError(null);
     } catch (err) {
@@ -63,7 +71,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [token, statusFilter, navigate]);
+  }, [token, statusFilter, eventFilter, dayFilter, navigate]);
 
   // Initial load and polling
   useEffect(() => {
@@ -313,6 +321,56 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Event / Day filters */}
+          {(data.events.length > 0 || data.days.length > 0) && (
+            <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+              <select
+                className="form-input"
+                style={{ maxWidth: 240 }}
+                value={eventFilter}
+                onChange={(e) => {
+                  setEventFilter(e.target.value);
+                  setLoading(true);
+                }}
+              >
+                <option value="">All events</option>
+                {data.events.map((ev) => (
+                  <option key={ev} value={ev}>
+                    {ev}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="form-input"
+                style={{ maxWidth: 200 }}
+                value={dayFilter}
+                onChange={(e) => {
+                  setDayFilter(e.target.value);
+                  setLoading(true);
+                }}
+              >
+                <option value="">All days</option>
+                {data.days.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+              {(eventFilter || dayFilter) && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setEventFilter("");
+                    setDayFilter("");
+                    setLoading(true);
+                  }}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Submissions Table */}
           <div className="glass-card admin-table-wrapper">
             <div style={{
@@ -350,6 +408,7 @@ export default function AdminDashboard() {
                     <th>#</th>
                     <th>Promoter</th>
                     <th>Username</th>
+                    <th>Event</th>
                     <th>Status</th>
                     <th>Time</th>
                     <th>Actions</th>
@@ -374,6 +433,9 @@ export default function AdminDashboard() {
                         ) : (
                           <span className="muted">—</span>
                         )}
+                      </td>
+                      <td>
+                        {sub.event ? sub.event : <span className="muted">—</span>}
                       </td>
                       <td>
                         <span className={`status-badge ${sub.status}`}>

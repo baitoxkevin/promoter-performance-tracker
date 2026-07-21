@@ -57,6 +57,7 @@ class MySubmissionItem(BaseModel):
     status: str
     full_name: Optional[str] = None
     member_id: Optional[str] = None
+    event: Optional[str] = None
     image_url: Optional[str] = None
     created_at: str
 
@@ -118,6 +119,7 @@ class AdminSubmission(BaseModel):
     extracted_username: Optional[str]
     full_name: Optional[str] = None
     member_id: Optional[str] = None
+    event: Optional[str] = None
     status: str
     image_path: str
     created_at: str
@@ -141,6 +143,8 @@ class AdminStatsResponse(BaseModel):
     total_duplicate: int
     total_ocr_failed: int
     submissions: List[AdminSubmission]
+    events: List[str] = []   # distinct event tags present (for filter dropdown)
+    days: List[str] = []     # distinct MYT days present (for filter dropdown)
 
 
 class BatchDeleteRequest(BaseModel):

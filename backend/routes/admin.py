@@ -96,10 +96,16 @@ async def admin_login(request: AdminLoginRequest):
     )
 
 
+# SQLite expression for the MYT calendar day of a submission (UTC + 8h)
+_MYT_DAY = func.strftime("%Y-%m-%d", func.datetime(Submission.created_at, "+8 hours"))
+
+
 @router.get("/admin/stats", response_model=AdminStatsResponse)
 async def get_admin_stats(
     status_filter: Optional[str] = None,
     promoter_filter: Optional[str] = None,
+    event_filter: Optional[str] = None,
+    day_filter: Optional[str] = None,
     db: Session = Depends(get_db),
     _: bool = Depends(verify_admin_token),
 ):
@@ -109,47 +115,38 @@ async def get_admin_stats(
     Query params:
       - status_filter: Filter by submission status (valid|duplicate|ocr_failed)
       - promoter_filter: Search by promoter name (partial match)
+      - event_filter: Filter by event/activation (exact match)
+      - day_filter: Filter by MYT calendar day ("YYYY-MM-DD")
     """
-    # ── Aggregate counts ──
-    total_promoters = db.query(func.count(Promoter.id)).scalar() or 0
-    total_submissions = db.query(func.count(Submission.id)).scalar() or 0
-    total_valid = (
-        db.query(func.count(Submission.id))
-        .filter(Submission.status == "valid")
-        .scalar()
-        or 0
-    )
-    total_duplicate = (
-        db.query(func.count(Submission.id))
-        .filter(Submission.status == "duplicate")
-        .scalar()
-        or 0
-    )
-    total_ocr_failed = (
-        db.query(func.count(Submission.id))
-        .filter(Submission.status == "ocr_failed")
-        .scalar()
-        or 0
-    )
+    # Event + day narrow the whole scope (counts AND list); status/promoter
+    # further narrow only the list so the stat cards show per-status totals
+    # within the selected event/day.
+    def scoped(q):
+        if event_filter:
+            q = q.filter(Submission.event == event_filter)
+        if day_filter:
+            q = q.filter(_MYT_DAY == day_filter)
+        return q
 
-    # ── Build filtered submission query ──
-    query = (
+    total_promoters = db.query(func.count(Promoter.id)).scalar() or 0
+    total_submissions = scoped(db.query(func.count(Submission.id))).scalar() or 0
+    total_valid = scoped(db.query(func.count(Submission.id)).filter(Submission.status == "valid")).scalar() or 0
+    total_duplicate = scoped(db.query(func.count(Submission.id)).filter(Submission.status == "duplicate")).scalar() or 0
+    total_ocr_failed = scoped(db.query(func.count(Submission.id)).filter(Submission.status == "ocr_failed")).scalar() or 0
+
+    # ── Build filtered submission list ──
+    query = scoped(
         db.query(Submission, Promoter)
         .join(Promoter, Promoter.id == Submission.promoter_id)
-        .order_by(Submission.created_at.desc())
-    )
+    ).order_by(Submission.created_at.desc())
 
-    # Apply optional filters
     if status_filter and status_filter in ("valid", "duplicate", "ocr_failed"):
         query = query.filter(Submission.status == status_filter)
-
     if promoter_filter:
         query = query.filter(Promoter.name.ilike(f"%{promoter_filter}%"))
 
-    # Limit to 200 most recent for performance
     submissions_data = query.limit(200).all()
 
-    # ── Build response ──
     submissions = []
     for sub, promoter in submissions_data:
         submissions.append(
@@ -160,6 +157,7 @@ async def get_admin_stats(
                 extracted_username=sub.extracted_username,
                 full_name=sub.full_name,
                 member_id=sub.member_id,
+                event=sub.event,
                 status=sub.status,
                 image_path=sub.image_path,
                 created_at=sub.created_at.isoformat() if sub.created_at else "",
@@ -175,6 +173,12 @@ async def get_admin_stats(
             )
         )
 
+    # Distinct events/days across the FULL dataset (so filters stay switchable)
+    events = [r[0] for r in db.query(Submission.event).filter(Submission.event.isnot(None)).distinct().all() if r[0]]
+    days = [r[0] for r in db.query(_MYT_DAY).distinct().all() if r[0]]
+    events.sort()
+    days.sort(reverse=True)
+
     return AdminStatsResponse(
         total_promoters=total_promoters,
         total_submissions=total_submissions,
@@ -182,6 +186,8 @@ async def get_admin_stats(
         total_duplicate=total_duplicate,
         total_ocr_failed=total_ocr_failed,
         submissions=submissions,
+        events=events,
+        days=days,
     )
 
 
@@ -242,10 +248,32 @@ async def export_excel(
         .all()
     )
 
-    # ── Sheet 1: Signups (valid only) — the payout-relevant data ──
-    ws1 = wb.active
-    ws1.title = "Signups"
-    ws1.append(["No.", "Promoter", "Full Name", "Member ID", "Date/Time (MYT)"])
+    def myt_day(dt) -> str:
+        if not dt:
+            return ""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+
+    # ── Sheet 1: Summary — valid signups by Event × Day (payout view) ──
+    ws0 = wb.active
+    ws0.title = "Summary"
+    ws0.append(["Event", "Day (MYT)", "Valid Signups", "Total Uploads"])
+    agg: dict = {}
+    for sub, _p in rows:
+        key = (sub.event or "(no event)", myt_day(sub.created_at))
+        cell = agg.setdefault(key, {"valid": 0, "total": 0})
+        cell["total"] += 1
+        if sub.status == "valid":
+            cell["valid"] += 1
+    for (ev, day) in sorted(agg.keys()):
+        ws0.append([_safe(ev), day, agg[(ev, day)]["valid"], agg[(ev, day)]["total"]])
+    style_header(ws0, 4)
+    autosize(ws0)
+
+    # ── Sheet 2: Signups (valid only) — the payout-relevant rows ──
+    ws1 = wb.create_sheet("Signups")
+    ws1.append(["No.", "Event", "Day (MYT)", "Promoter", "Full Name", "Member ID", "Time (MYT)"])
     n = 0
     for sub, promoter in rows:
         if sub.status != "valid":
@@ -253,23 +281,27 @@ async def export_excel(
         n += 1
         ws1.append([
             n,
+            _safe(sub.event or ""),
+            myt_day(sub.created_at),
             _safe(promoter.name),
             _safe(sub.full_name or sub.extracted_username or ""),
             _safe(sub.member_id or ""),
             _fmt_myt(sub.created_at),
         ])
-    style_header(ws1, 5)
+    style_header(ws1, 7)
     autosize(ws1)
 
-    # ── Sheet 2: All Submissions ──
+    # ── Sheet 3: All Submissions ──
     ws2 = wb.create_sheet("All Submissions")
     ws2.append([
-        "ID", "Promoter", "IC Number", "Full Name", "Member ID", "Status",
-        "Matched With", "Similarity %", "OCR Confidence", "Date/Time (MYT)",
+        "ID", "Event", "Day (MYT)", "Promoter", "IC Number", "Full Name", "Member ID",
+        "Status", "Matched With", "Similarity %", "OCR Confidence", "Date/Time (MYT)",
     ])
     for sub, promoter in rows:
         ws2.append([
             sub.id,
+            _safe(sub.event or ""),
+            myt_day(sub.created_at),
             _safe(promoter.name),
             _safe(promoter.ic_number),
             _safe(sub.full_name or sub.extracted_username or ""),
@@ -280,10 +312,10 @@ async def export_excel(
             round(sub.ocr_confidence, 2) if sub.ocr_confidence is not None else "",
             _fmt_myt(sub.created_at),
         ])
-    style_header(ws2, 10)
+    style_header(ws2, 12)
     autosize(ws2)
 
-    # ── Sheet 3: Promoters (with valid signup counts) ──
+    # ── Sheet 4: Promoters (with valid signup counts) ──
     ws3 = wb.create_sheet("Promoters")
     ws3.append(["Promoter", "IC Number", "Gender", "Valid Signups", "Joined (MYT)"])
     counts = dict(

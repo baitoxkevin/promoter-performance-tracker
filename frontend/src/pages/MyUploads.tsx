@@ -163,6 +163,7 @@ export default function MyUploads() {
                       {item.member_id ? `ID ${item.member_id} · ` : ""}
                       {formatTime(item.created_at)}
                     </div>
+                    {item.event && <div className="history-meta">{item.event}</div>}
                   </div>
                   <span className={`status-badge ${item.status}`}>
                     {STATUS_LABEL[item.status] || item.status}

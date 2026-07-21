@@ -21,12 +21,14 @@ export async function uploadScreenshots(
   promoterName: string,
   icNumber: string,
   gender: string,
-  files: File[]
+  files: File[],
+  event?: string
 ): Promise<BatchUploadResponse> {
   const formData = new FormData();
   formData.append("promoter_name", promoterName);
   formData.append("ic_number", icNumber);
   formData.append("gender", gender);
+  if (event) formData.append("event", event);
 
   for (const file of files) {
     formData.append("files", file);
@@ -107,11 +109,15 @@ export async function adminLogin(pin: string): Promise<AdminLoginResponse> {
 export async function fetchAdminStats(
   token: string,
   statusFilter?: string,
-  promoterFilter?: string
+  promoterFilter?: string,
+  eventFilter?: string,
+  dayFilter?: string
 ): Promise<AdminStatsResponse> {
   const params = new URLSearchParams();
   if (statusFilter) params.append("status_filter", statusFilter);
   if (promoterFilter) params.append("promoter_filter", promoterFilter);
+  if (eventFilter) params.append("event_filter", eventFilter);
+  if (dayFilter) params.append("day_filter", dayFilter);
 
   const url = `${API_BASE}/admin/stats${params.toString() ? "?" + params.toString() : ""}`;
 
