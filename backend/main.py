@@ -16,11 +16,16 @@ from database import init_db
 from routes import upload, leaderboard, admin
 from config import UPLOAD_DIR
 from worker import start_worker
-from schema_migration import run_promoters_migration, run_submissions_migration
+from schema_migration import (
+    run_promoters_migration,
+    run_submissions_migration,
+    run_valid_usernames_rebuild,
+)
 
 # ──────────────────────────────────────────────
 # Initialize database tables on startup
 # ──────────────────────────────────────────────
+run_valid_usernames_rebuild()  # migrate BEFORE create_all so the new schema/indexes apply
 init_db()
 run_promoters_migration()
 run_submissions_migration()

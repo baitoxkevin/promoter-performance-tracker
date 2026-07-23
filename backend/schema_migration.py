@@ -74,6 +74,57 @@ def run_submissions_migration():
     conn.close()
 
 
+def run_valid_usernames_rebuild():
+    """
+    Rebuild valid_usernames so member_id is the unique key and usernames may
+    repeat. The old schema had UNIQUE(username), which wrongly blocked two
+    different people who share a name (e.g. two "Siang"s with different member IDs).
+    """
+    if not os.path.exists(DB_PATH):
+        return
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Table missing (fresh DB) → create_all already built the new schema
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='valid_usernames'")
+    if not cursor.fetchone():
+        conn.close()
+        return
+    # Marker: our partial index exists → already migrated
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_valid_username_noid'")
+    if cursor.fetchone():
+        conn.close()
+        return
+
+    print("[Migration] Rebuilding valid_usernames (member_id is the unique key; usernames may repeat)...")
+    cursor.executescript(
+        """
+        PRAGMA foreign_keys=OFF;
+        BEGIN;
+        CREATE TABLE valid_usernames_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username VARCHAR(100) NOT NULL,
+            member_id VARCHAR(50),
+            submission_id INTEGER NOT NULL,
+            promoter_id INTEGER NOT NULL,
+            created_at DATETIME
+        );
+        INSERT INTO valid_usernames_new (id, username, member_id, submission_id, promoter_id, created_at)
+            SELECT id, username, member_id, submission_id, promoter_id, created_at FROM valid_usernames;
+        DROP TABLE valid_usernames;
+        ALTER TABLE valid_usernames_new RENAME TO valid_usernames;
+        CREATE UNIQUE INDEX idx_valid_member_id ON valid_usernames(member_id);
+        CREATE UNIQUE INDEX idx_valid_username_noid ON valid_usernames(username) WHERE member_id IS NULL;
+        COMMIT;
+        PRAGMA foreign_keys=ON;
+        """
+    )
+    conn.commit()
+    conn.close()
+    print("[Migration] valid_usernames rebuild complete.")
+
+
 if __name__ == "__main__":
     run_promoters_migration()
     run_submissions_migration()
+    run_valid_usernames_rebuild()

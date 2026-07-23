@@ -11,7 +11,7 @@ Tables:
 from datetime import datetime, timezone
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text,
-    DateTime, ForeignKey, CheckConstraint, Index, Float, Boolean, Table
+    DateTime, ForeignKey, CheckConstraint, Index, Float, Boolean, Table, text
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
@@ -128,15 +128,18 @@ class ValidUsername(Base):
     __tablename__ = "valid_usernames"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(100), nullable=False, unique=True)
-    member_id = Column(String(50), nullable=True)  # Unique when present; NULLs don't collide
+    # Username is NOT globally unique — different people share names (two "Siang"s).
+    username = Column(String(100), nullable=False)
+    member_id = Column(String(50), nullable=True)  # the authoritative unique key when present
     submission_id = Column(Integer, ForeignKey("submissions.id"), nullable=False)
     promoter_id = Column(Integer, ForeignKey("promoters.id"), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
-        Index("idx_valid_username", "username", unique=True),
+        # Member ID is unique when present (NULLs are distinct in SQLite)
         Index("idx_valid_member_id", "member_id", unique=True),
+        # Fallback backstop: when OCR read no member ID, the username must be unique
+        Index("idx_valid_username_noid", "username", unique=True, sqlite_where=text("member_id IS NULL")),
     )
 
     # Relationships
