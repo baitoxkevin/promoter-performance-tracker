@@ -124,7 +124,26 @@ def run_valid_usernames_rebuild():
     print("[Migration] valid_usernames rebuild complete.")
 
 
+def run_drop_username_noid_index():
+    """
+    Drop the partial UNIQUE index on username (where member_id IS NULL). Names
+    may now fully repeat — only the member ID enforces uniqueness — so a second
+    no-ID upload sharing a name must not be blocked as a duplicate.
+    """
+    if not os.path.exists(DB_PATH):
+        return
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_valid_username_noid'")
+    if cursor.fetchone():
+        print("[Migration] Dropping idx_valid_username_noid (names may now repeat)...")
+        cursor.execute("DROP INDEX idx_valid_username_noid")
+        conn.commit()
+    conn.close()
+
+
 if __name__ == "__main__":
     run_promoters_migration()
     run_submissions_migration()
     run_valid_usernames_rebuild()
+    run_drop_username_noid_index()

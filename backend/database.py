@@ -136,10 +136,9 @@ class ValidUsername(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
-        # Member ID is unique when present (NULLs are distinct in SQLite)
+        # Member ID is the ONLY uniqueness constraint (NULLs are distinct in
+        # SQLite). Usernames may fully repeat — same name, different accounts.
         Index("idx_valid_member_id", "member_id", unique=True),
-        # Fallback backstop: when OCR read no member ID, the username must be unique
-        Index("idx_valid_username_noid", "username", unique=True, sqlite_where=text("member_id IS NULL")),
     )
 
     # Relationships

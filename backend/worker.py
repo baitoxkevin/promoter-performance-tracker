@@ -160,17 +160,18 @@ def _process_submission(submission_id: int):
         submission.full_name = username
 
         # ── Duplicate detection ──
-        # The member ID is the authoritative unique key. When we have one, it is
-        # the ONLY thing that decides a duplicate — two different member IDs are
-        # two different people even if they share a name (e.g. two "Siang"s).
-        # Fuzzy name matching is only a fallback for when OCR couldn't read an ID.
+        # The member ID is the ONLY thing that decides a duplicate. Two people
+        # can share a name (groups registering separate accounts under the same
+        # name), so a name match must NEVER flag a duplicate — only a matching
+        # member ID does. When OCR can't read a member ID, we cannot prove it's
+        # a repeat, so we register it rather than risk blocking a real signup.
+        submission.matching_time = 0.0
         if member_id:
             existing = (
                 db.query(ValidUsername)
                 .filter(ValidUsername.member_id == member_id)
                 .first()
             )
-            submission.matching_time = 0.0
             if existing:
                 submission.matched_name = existing.username
                 submission.similarity = 100.0
@@ -181,39 +182,7 @@ def _process_submission(submission_id: int):
                     db.commit()
                 print(f"[Worker] Submission #{submission_id}: DUPLICATE member ID '{member_id}' already registered to '{existing.username}'")
                 return
-            # member ID present and unique → not a duplicate; skip name matching
-        else:
-            # ── No member ID read → fall back to fuzzy name matching ──
-            match_start = time.time()
-            with _username_cache_lock:
-                if not _username_cache:
-                    _refresh_username_cache(db)
-
-            usernames = get_cached_usernames()
-
-            best_match_name = None
-            best_score = 0.0
-
-            if usernames:
-                fuzz_res = process.extractOne(username, usernames, scorer=fuzz.token_sort_ratio)
-                if fuzz_res:
-                    best_match_name, score_val, _ = fuzz_res
-                    set_ratio = fuzz.token_set_ratio(username, best_match_name)
-                    best_score = max(score_val, set_ratio)
-
-            submission.matching_time = time.time() - match_start
-            submission.matched_name = best_match_name
-            submission.similarity = best_score
-
-            # Duplicate threshold: 92%
-            if best_score >= 92.0:
-                _move_image(submission, promoter.name, is_duplicate=True, db=db)
-                with _db_lock:
-                    submission.status = "duplicate"
-                    submission.total_time = time.time() - total_start
-                    db.commit()
-                print(f"[Worker] Submission #{submission_id}: DUPLICATE '{username}' matched '{best_match_name}' ({best_score:.1f}%)")
-                return
+        # No member ID (or a new one) → register; names are allowed to repeat.
 
         # ── New valid username ──
         _move_image(submission, promoter.name, is_duplicate=False, db=db)

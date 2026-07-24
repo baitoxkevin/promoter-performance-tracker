@@ -20,6 +20,7 @@ from schema_migration import (
     run_promoters_migration,
     run_submissions_migration,
     run_valid_usernames_rebuild,
+    run_drop_username_noid_index,
 )
 
 # ──────────────────────────────────────────────
@@ -29,6 +30,7 @@ run_valid_usernames_rebuild()  # migrate BEFORE create_all so the new schema/ind
 init_db()
 run_promoters_migration()
 run_submissions_migration()
+run_drop_username_noid_index()
 
 # ──────────────────────────────────────────────
 # Start background OCR worker thread
