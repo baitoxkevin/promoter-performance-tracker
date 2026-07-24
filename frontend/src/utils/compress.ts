@@ -27,8 +27,10 @@ function isHEIC(file: File): boolean {
  *   4. Return the compressed file.
  */
 export async function compressImage(file: File): Promise<File> {
+  const heic = isHEIC(file);
+
   // Skip if already small enough AND not HEIC (HEIC must be converted to JPEG)
-  if (file.size <= MAX_SIZE_BYTES && !isHEIC(file)) {
+  if (file.size <= MAX_SIZE_BYTES && !heic) {
     return file;
   }
 
@@ -41,7 +43,13 @@ export async function compressImage(file: File): Promise<File> {
 
       // Calculate scaled dimensions
       let { width, height } = img;
-      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+      // Safety: clamp to reasonable max for mobile browsers
+      const MAX_PIXELS = 2000;
+      if (width > MAX_PIXELS || height > MAX_PIXELS) {
+        const ratio = Math.min(MAX_PIXELS / width, MAX_PIXELS / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      } else if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
         const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
         width = Math.round(width * ratio);
         height = Math.round(height * ratio);
@@ -65,7 +73,7 @@ export async function compressImage(file: File): Promise<File> {
         canvas.toBlob(
           (blob) => {
             if (!blob) {
-              reject(new Error("Canvas compression failed"));
+              reject(new Error("Image conversion failed. Please try a different photo."));
               return;
             }
 
@@ -77,9 +85,10 @@ export async function compressImage(file: File): Promise<File> {
 
             const compressedFile = new File(
               [blob],
-              file.name.replace(/\.[^.]+$/, ".jpg"),
+              heic ? file.name.replace(/\.[^.]+$/, ".jpg") : file.name.replace(/\.[^.]+$/, ".jpg"),
               { type: "image/jpeg", lastModified: Date.now() }
             );
+            console.log(`Compressed: ${file.name} (${file.size}→${blob.size} bytes${heic ? ', HEIC→JPEG' : ''})`);
             resolve(compressedFile);
           },
           "image/jpeg",
@@ -92,8 +101,14 @@ export async function compressImage(file: File): Promise<File> {
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      // If compression fails, return the original file
-      resolve(file);
+      if (heic) {
+        reject(new Error(
+          "HEIC photos are not supported by your browser. " +
+          "Please convert to JPEG first, or use a different browser (Chrome/Safari)."
+        ));
+      } else {
+        reject(new Error("Failed to load image. The file may be corrupted or in an unsupported format."));
+      }
     };
 
     img.src = url;
