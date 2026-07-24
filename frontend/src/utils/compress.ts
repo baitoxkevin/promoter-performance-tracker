@@ -1,10 +1,13 @@
 /**
  * Client-side image compression using the Canvas API.
  * Reduces file size before uploading to the server.
+ * Supports auto-converting iPhone HEIC/HEIF images to JPEG.
  */
 
+import heic2any from "heic2any";
+
 /** Maximum width/height for compressed images (pixels) */
-const MAX_DIMENSION = 800;
+const MAX_DIMENSION = 640;
 /** JPEG quality for compression (0.0 to 1.0) */
 const QUALITY = 0.85;
 /** Maximum file size after compression (bytes) — 100KB */
@@ -16,27 +19,60 @@ function isHEIC(file: File): boolean {
     file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif");
 }
 
+/** Convert HEIC File to JPEG File in the browser using heic2any */
+async function convertHeicToJpeg(file: File): Promise<File> {
+  try {
+    console.log(`[HEIC] Converting ${file.name} to JPEG...`);
+    const result = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.90,
+    });
+    
+    const blob = Array.isArray(result) ? result[0] : result;
+    const newName = file.name.replace(/\.[^.]+$/, ".jpg");
+    
+    return new File([blob], newName, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch (err) {
+    console.error("[HEIC] Conversion failed:", err);
+    throw new Error("Failed to process HEIC photo. Please convert to JPEG manually or use a standard screenshot.");
+  }
+}
+
 /**
  * Compress an image file using canvas.
- * HEIC files are always converted to JPEG (OpenCV can't read HEIC).
+ * HEIC files are converted to JPEG first.
  *
  * Strategy:
- *   1. Load the image into an HTMLImageElement.
- *   2. Draw it onto a canvas, scaling down if it exceeds MAX_DIMENSION.
- *   3. Export as JPEG with progressive quality reduction if needed.
- *   4. Return the compressed file.
+ *   1. Auto-convert HEIC to JPEG if needed.
+ *   2. Load the image into an HTMLImageElement.
+ *   3. Draw it onto a canvas, scaling down if it exceeds MAX_DIMENSION.
+ *   4. Export as JPEG with progressive quality reduction if needed.
+ *   5. Return the compressed file.
  */
 export async function compressImage(file: File): Promise<File> {
-  const heic = isHEIC(file);
+  let activeFile = file;
 
-  // Skip if already small enough AND not HEIC (HEIC must be converted to JPEG)
-  if (file.size <= MAX_SIZE_BYTES && !heic) {
-    return file;
+  // Step 1: Handle HEIC to JPEG conversion if needed
+  if (isHEIC(file)) {
+    try {
+      activeFile = await convertHeicToJpeg(file);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // Step 2: Skip canvas compression if already small enough
+  if (activeFile.size <= MAX_SIZE_BYTES) {
+    return activeFile;
   }
 
   return new Promise((resolve, reject) => {
     const img = new Image();
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(activeFile);
 
     img.onload = () => {
       URL.revokeObjectURL(url);
@@ -85,10 +121,10 @@ export async function compressImage(file: File): Promise<File> {
 
             const compressedFile = new File(
               [blob],
-              heic ? file.name.replace(/\.[^.]+$/, ".jpg") : file.name.replace(/\.[^.]+$/, ".jpg"),
+              activeFile.name.replace(/\.[^.]+$/, ".jpg"),
               { type: "image/jpeg", lastModified: Date.now() }
             );
-            console.log(`Compressed: ${file.name} (${file.size}→${blob.size} bytes${heic ? ', HEIC→JPEG' : ''})`);
+            console.log(`Compressed: ${activeFile.name} (${activeFile.size}→${blob.size} bytes)`);
             resolve(compressedFile);
           },
           "image/jpeg",
@@ -101,14 +137,7 @@ export async function compressImage(file: File): Promise<File> {
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      if (heic) {
-        reject(new Error(
-          "HEIC photos are not supported by your browser. " +
-          "Please convert to JPEG first, or use a different browser (Chrome/Safari)."
-        ));
-      } else {
-        reject(new Error("Failed to load image. The file may be corrupted or in an unsupported format."));
-      }
+      reject(new Error("Failed to load image. The file may be corrupted or in an unsupported format."));
     };
 
     img.src = url;
