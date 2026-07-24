@@ -215,7 +215,7 @@ def extract_username_with_llm(ocr_text: str) -> Optional[str]:
             _llm_cache[key] = None
         return None
 
-def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str], int]:
+def evaluate_candidates(ocr_lines: List[Dict[str, Any]], qr_info: Optional[Dict[str, Any]] = None) -> Tuple[Optional[str], int]:
     """
     Rule Engine: Analyze the extracted OCR text lines and select the best promoter name candidate.
     
@@ -225,6 +225,7 @@ def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str],
       +25: Line is followed within 2 lines by member metadata (ID, Member Since, etc.).
       +15: Line matches 2~5 Chinese characters.
       +15: Line matches 1~6 English words (letters/spaces only).
+      +30 to +80: Spatial bonus if the line is immediately above and horizontally centered with a detected QR code.
       -30: Contains digits.
       -20: Contains URL/links.
       -20: Word token intersection matches PENALIZED_WORDS.
@@ -284,6 +285,36 @@ def evaluate_candidates(ocr_lines: List[Dict[str, Any]]) -> Tuple[Optional[str],
         # 2. English Name (1~6 words, letters/spaces only)
         elif re.match(r"^[A-Za-z]+(?:\s+[A-Za-z]+){0,5}$", clean_text):
             score += 15
+
+        # Check spatial relation to QR Code if QR code is detected
+        if qr_info is not None:
+            try:
+                # Calculate text box boundaries
+                box = np.array(line["box"])
+                text_left_x = min(pt[0] for pt in box)
+                text_right_x = max(pt[0] for pt in box)
+                text_top_y = min(pt[1] for pt in box)
+                text_bottom_y = max(pt[1] for pt in box)
+                text_center_x = (text_left_x + text_right_x) / 2
+                
+                # 1. Must be above the QR code top y coordinate
+                if text_bottom_y < qr_info["top_y"]:
+                    dist_y = qr_info["top_y"] - text_bottom_y
+                    # 2. Must not be too far away (e.g. within 1.5 times the QR code height)
+                    max_dist = qr_info["height"] * 1.5
+                    if dist_y < max_dist:
+                        # 3. Horizontal centering overlap check
+                        # The text line center X should be close to the QR code center X
+                        dist_x = abs(text_center_x - qr_info["center_x"])
+                        if dist_x < qr_info["width"] * 0.7:
+                            # This line is located immediately above the QR code and centered!
+                            closeness_ratio = 1.0 - (dist_y / max_dist)
+                            alignment_ratio = 1.0 - (dist_x / (qr_info["width"] * 0.7))
+                            spatial_bonus = int(50 * closeness_ratio * alignment_ratio)
+                            score += 30 + spatial_bonus
+                            print(f"[OCR-Spatial] Line '{clean_text}' detected above QR code. Score bonus: +{30 + spatial_bonus} points (dist_y={dist_y:.1f}px, dist_x={dist_x:.1f}px)")
+            except Exception as e:
+                print(f"[OCR-Spatial] Error during spatial check: {e}")
             
         # Penalty Rules
         # 1. Contains digits
@@ -337,9 +368,36 @@ def process_image(image_path: str) -> Dict[str, Any]:
     # Compute average OCR confidence
     avg_confidence = np.mean([line["confidence"] for line in ocr_lines]) if ocr_lines else 0.0
     
+    # ── QR Code Detection ──
+    qr_info = None
+    try:
+        detector = cv2.QRCodeDetector()
+        retval, qr_points, _ = detector.detectAndDecode(processed_img)
+        if qr_points is not None and len(qr_points) > 0:
+            pts = qr_points[0]
+            qr_top_y = min(p[1] for p in pts)
+            qr_bottom_y = max(p[1] for p in pts)
+            qr_left_x = min(p[0] for p in pts)
+            qr_right_x = max(p[0] for p in pts)
+            qr_center_x = (qr_left_x + qr_right_x) / 2
+            qr_width = qr_right_x - qr_left_x
+            qr_height = qr_bottom_y - qr_top_y
+            qr_info = {
+                "top_y": qr_top_y,
+                "bottom_y": qr_bottom_y,
+                "left_x": qr_left_x,
+                "right_x": qr_right_x,
+                "center_x": qr_center_x,
+                "width": qr_width,
+                "height": qr_height
+            }
+            print(f"[OCR-Spatial] QR Code detected: top_y={qr_top_y:.1f}, center_x={qr_center_x:.1f}, size={qr_width:.1f}x{qr_height:.1f}")
+    except Exception as e:
+        print(f"[OCR-Spatial] QR detection failed: {e}")
+
     # ── Phase 3: Rule Engine ──
     rule_start = time.time()
-    extracted_name, candidate_score = evaluate_candidates(ocr_lines)
+    extracted_name, candidate_score = evaluate_candidates(ocr_lines, qr_info=qr_info)
     rule_time = time.time() - rule_start
     
     llm_used = False
