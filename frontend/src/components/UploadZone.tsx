@@ -25,12 +25,18 @@ export default function UploadZone({ files, onFilesSelected, onRemoveFile, maxFi
 
   const remaining = maxFiles - files.length;
 
+  // Check if file is an image (MIME type OR file extension)
+  const isImageFile = (f: File) => {
+    if (f.type.startsWith("image/")) return true;
+    // Some formats (HEIC) have empty MIME on certain browsers — check extension
+    const ext = f.name.toLowerCase().split(".").pop();
+    return ["jpg","jpeg","png","webp","heic","heif","bmp","tiff"].includes(ext || "");
+  };
+
   // Filter to only accept image files, enforce max limit
   const filterImages = useCallback((fileList: FileList | null): File[] => {
     if (!fileList) return [];
-    const images = Array.from(fileList).filter((f) =>
-      f.type.startsWith("image/")
-    );
+    const images = Array.from(fileList).filter(isImageFile);
     if (files.length + images.length > maxFiles) {
       const allowed = images.slice(0, remaining);
       setLimitWarning(`Maximum ${maxFiles} files per upload. ${images.length - allowed.length} file(s) were not added.`);
