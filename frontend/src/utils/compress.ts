@@ -37,8 +37,8 @@ async function convertHeicToJpeg(file: File): Promise<File> {
       lastModified: Date.now(),
     });
   } catch (err) {
-    console.error("[HEIC] Conversion failed:", err);
-    throw new Error("Failed to process HEIC photo. Please convert to JPEG manually or use a standard screenshot.");
+    console.warn("[HEIC] Client-side conversion failed. Passing original HEIC file to backend:", err);
+    return file;
   }
 }
 
@@ -60,8 +60,12 @@ export async function compressImage(file: File): Promise<File> {
   if (isHEIC(file)) {
     try {
       activeFile = await convertHeicToJpeg(file);
+      if (isHEIC(activeFile)) {
+        console.log(`[HEIC] Bypassing canvas compression for unconverted HEIC file: ${file.name}`);
+        return activeFile;
+      }
     } catch (err) {
-      throw err;
+      return file;
     }
   }
 

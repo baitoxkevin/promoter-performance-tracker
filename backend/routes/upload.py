@@ -133,8 +133,34 @@ async def upload_screenshots(
             db.commit()
             continue
 
+        # Check if HEIC/HEIF file
+        filename_lower = upload_file.filename.lower() if upload_file.filename else ""
+        content_type = upload_file.content_type.lower() if upload_file.content_type else ""
+        is_heic = filename_lower.endswith((".heic", ".heif")) or content_type in ("image/heic", "image/heif")
+
         # Generate filename and save to disk
         filename = generate_filename(None)  # No username yet
+
+        if is_heic:
+            try:
+                from pillow_heif import register_heif_opener
+                from PIL import Image
+                import io
+                
+                print(f"[Upload] Converting HEIC upload '{upload_file.filename}' to JPEG on backend...")
+                register_heif_opener()
+                image = Image.open(io.BytesIO(contents))
+                
+                # Convert to JPEG bytes
+                out_buffer = io.BytesIO()
+                image.convert("RGB").save(out_buffer, format="JPEG", quality=85)
+                contents = out_buffer.getvalue()
+                
+                # Change filename extension to .jpg
+                filename = filename.rsplit(".", 1)[0] + ".jpg"
+            except Exception as e:
+                print(f"[Upload] Backend HEIC conversion failed: {e}")
+
         dest_path = pending_folder / filename
 
         with open(dest_path, "wb") as f:
